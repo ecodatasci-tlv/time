@@ -8,23 +8,18 @@ output:
     highlight: github
 ---
 
-
 ```{r message=FALSE, warning=FALSE}
+library(tidyverse)
 library(lubridate)
-library(dplyr)
-library(tidyr)
 library(hms)
-library(ggplot2)
 library(scales)
 ```
 
-
-
 ```{r}
 timeSample <- data.frame(
-  "Date.1" = c("02-10-2019", "2/10/19"),
-  "Date.2" = c("2019 10 02", "19/10/2"),
-  "DateTime1" = c("02-10-2019 19:00:00", "02-10-2019 7:00:00PM")
+  data_1 = c("02-10-2019", "2/10/19"),
+  data_2 = c("2019 10 02", "19/10/2"),
+  datatime_1 = c("02-10-2019 19:00:00", "02-10-2019 7:00:00PM")
 )
 ```
 
@@ -35,49 +30,45 @@ knitr::kable(timeSample)
 
 # Part 1 - simple example
 
-###Convert to Datetime object (class posixct/posixit)
+### Convert to Datetime object (class POSIXCT/POSIXIT)
 
-lubridate have multiple functions that convert factor (or any other class) to dates  
-for exmple:
+lubridate has multiple functions that convert factor (or any other class) to dates. For example:
 
-*  ymd
-*  mdy
-*  dmy
+*  `ymd()` (year, month, day)
+*  `mdy()`
+*  `dmy()`
 
-(y - year,m - month,d - day)
+The difference is the order of the time variables, you need to choose the one that fit for your date type.
 
-The differnce is the order of the time varibals, you need to choose the one that fit for your date type
-
-e.g. in Date.1 coulmn the date is bulit in format of day-month-year so i use the dmy function
+e.g. in data_1 column the date is built in format of day-month-year so I use the dmy function
 
 ```{r}
-timeSample$Date.1 <- dmy(timeSample$Date.1)
+timeSample$data_1 <- dmy(timeSample$data_1)
 
 knitr::kable(timeSample)
 ```
 
-in Date.2 coulmn the date is bulit in format of year-month-day so i use the ymd function
+in data_2 column the date is built in format of year-month-day so i use the ymd function
 
 ```{r}
-timeSample$Date.2 <- ymd(timeSample$Date.2)
+timeSample$data_2 <- ymd(timeSample$data_2)
 knitr::kable(timeSample)
 ```
 
-**note** the only thing that metter is the order between the day/month/year, the seperators can change (':' or '/' or '-' ect.) and lubridate can handel it...The same gose for 02 or 2, 2019 or 19 
+**Note** the only thing that matters is the order between the day/month/year, the separators can change (':' or '/' or '-' etc.) and lubridate can handle it...The same goes for 02 or 2, 2019 or 19 
 
 ** Really cool!! **
 
-lubridate can also handel date and time object in the same manner...
+lubridate can also handle date and time object in the same manner...
 * note - can translate AM/PM to the right 24 clock hour
 
 ```{r}
-timeSample$DateTime1 <- dmy_hms(timeSample$DateTime1)
+timeSample$datatime_1 <- dmy_hms(timeSample$datatime_1)
 knitr::kable(timeSample)
 ```
 
 
 ```{r, echo=FALSE, results='asis'}
-
 knitr::kable(timeSample)
 ```
 
@@ -85,27 +76,27 @@ knitr::kable(timeSample)
 
 when dealing with times in R its super importent to pay attention to time zones
 
-if you dont sepesify the time zone, the defult will be UTC. 
-can cause problems later on if you do all kind of time calculations and dont understand why you get weird numbers (;
+if you don't specify the time zone, the default will be UTC. 
+can cause problems later on if you do all kind of time calculations and don't understand why you get weird numbers (;
 
 
-The 'force_tz' function will take the time as it and change the time zone (in the 'back office') to the requaierd one.
+The 'force_tz' function will take the time as it and change the time zone (in the 'back office') to the required one.
 its good for cases where you didn't specify the time zone for your data beforehand and now you want to fix it
 
 ```{r}
-tz(timeSample$DateTime1)
+tz(timeSample$datatime_1)
 
-timeSample$DateTime1 <- force_tz(timeSample$DateTime1, "Asia/Jerusalem")
+timeSample$datatime_1 <- force_tz(timeSample$datatime_1, "Asia/Jerusalem")
 
-tz(timeSample$DateTime1)
+tz(timeSample$datatime_1)
 ```
 
-The 'with_tz' function will **convert** your time zone to a diffrent one.
-this function is good for cases where you want to know the time in difftent places
+The 'with_tz' function will **convert** your time zone to a different one.
+this function is good for cases where you want to know the time in different places
 
 
 ```{r}
-timeSample$DateTime_UTC <- with_tz(timeSample$DateTime1, "UTC")
+timeSample$DateTime_UTC <- with_tz(timeSample$datatime_1, "UTC")
 
 knitr::kable(timeSample)
 ```
@@ -117,7 +108,7 @@ ymd_hms("2019-07-20 08:35:00", tz = "Asia/Jerusalem")
 ```
 
 
-### other nice finction in lubridate
+### other nice function in lubridate
 
 ```{r}
 Sys.time() # will give the current date and time
@@ -174,9 +165,9 @@ taxi$trip_end <- ymd_hms(taxi$trip_end, tz = "Asia/Jerusalem")
 ```
 
 
-### What is the week-day with the highst number of taxi trips?
+### What is the week-day with the highest number of taxi trips?
 
-lubridate have a series of function that exstract diffrent varibal out of the datetime
+lubridate have a series of function that extract different variable out of the datetime
 
 * day()
 * month()
@@ -184,7 +175,7 @@ lubridate have a series of function that exstract diffrent varibal out of the da
 * week()
 * hour()
 
-ect.
+etc.
 
 ```{r}
 
@@ -197,9 +188,9 @@ taxi_trips <- taxi %>% group_by(week_day) %>% summarise("trips" = n())
 knitr::kable(taxi_trips)
 ```
 
-friday is the mose busy day...
+Friday is the most busy day...
 
-### What is the duration of each taxie trip?
+### What is the duration of each taxi trip?
 
 ```{r}
 
@@ -210,9 +201,9 @@ taxi$duration <- difftime(taxi$trip_end, taxi$trip_start, units = "mins")
 knitr::kable(head(taxi))
 ```
 
-### It seems that trips with duration below 15 mins are defult to zero...
+### It seems that trips with duration below 15 mins are default to zero...
 
-lets assume that this is a mistake and change all the zero duration to a five minuts drive
+lets assume that this is a mistake and change all the zero duration to a five minus drive
 
 ```{r}
 five_min <- as.period(5, unit = "mins") # create five minute object
@@ -248,14 +239,11 @@ ymd("2018-03-13") %within% example_interval
 ymd("2018-02-13") %within% example_interval
 ```
 
-first create the boundery of each interval (need to be combination of the **date** and hour)
-then use ifelse to match each trip to the proper time catergory
+first create the boundary of each interval (need to be combination of the **date** and hour)
+then use ifelse to match each trip to the proper time category
 
 
 ```{r}
-
-
-
 taxi$morning_start <- ymd_hms(paste(as.Date(taxi$trip_start), "05:00:00", sep = " "), tz = "Asia/Jerusalem")
 taxi$noon_start <- ymd_hms(paste(as.Date(taxi$trip_start), "12:00:00", sep = " "), tz = "Asia/Jerusalem")
 taxi$evening_start <- ymd_hms(paste(as.Date(taxi$trip_start), "18:00:00", sep = " "), tz = "Asia/Jerusalem")
@@ -277,7 +265,7 @@ knitr::kable(head(taxi))
 
 # Round dates and times
 
-assume i want to round the trips to helf hour unit so I can group them better...
+assume i want to round the trips to half hour unit so I can group them better...
 
 the unit can be other combination as well...
 
@@ -287,7 +275,7 @@ e.g.
 *  "5 mins"
 *  "quarter"
 
-ect.
+etc.
 
 ```{r}
 
@@ -296,7 +284,7 @@ taxi$round_hour <- round_date(taxi$trip_start, unit = "30 mins")
 
 other functions are
 
-"floor_date" and "ceiling_date" that will rouns the time down or up respectively
+"floor_date" and "ceiling_date" that will round the time down or up respectively
 
 ### Plots:
 
@@ -310,7 +298,7 @@ p <- ggplot(taxi, aes(taxi$trip_start, taxi$trip_total)) +
 
 to control time axis use:
 
-'sacle_x_datetime'
+'scale_x_datetime'
 
 or
 
@@ -324,11 +312,11 @@ p + scale_x_datetime(date_breaks = "5 day", labels = date_format("%d-%m-%Y"))
 
 the 'date_break' argument control for the ticks mark
 
-the 'labels' argument control for the lable of your data
+the 'labels' argument control for the label of your data
 
-as this functoin dont work with lubridate the syntex here is diffrent
+as this function don't work with lubridate the syntax here is different
 
-before each time varibale need to add % sign, then the symbol for the time argument and the desired seperator
+before each time variable need to add % sign, then the symbol for the time argument and the desired separator
 
 link to the date symbol guide:
 
@@ -366,7 +354,7 @@ ex_3
 
 If you want to plot hourly patterns  there are 2 options
 
-####1. use the hms package that can extract only the time varible from the date_time
+####1. use the hms package that can extract only the time variable from the date_time
 ```{r}
 
 taxi$time <- as.hms(taxi$trip_start)
@@ -374,12 +362,12 @@ taxi$time <- as.hms(taxi$trip_start)
 ggplot(taxi, aes(x = taxi$time, y = taxi$fix_duration)) + geom_point()
 ```
 
-the problum - this package dont work fluently with the ggplot and its not clear how to custumise the axis
+the problem - this package don't work fluently with the ggplot and its not clear how to customize the axis
 (also the information online is scare)
 
 ####option 2
 
-give one fake date to all the observation and custmise with the scale_x_datetime arguments
+give one fake date to all the observation and customize with the scale_x_datetime arguments
 
 ```{r}
 
