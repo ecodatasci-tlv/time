@@ -1,0 +1,240 @@
+---
+title: "Simple Descriptive Techniques for Time Series Analysis"
+author: "Amir R"
+output:
+  html_document:
+    df_print: paged
+---
+```{r eval=T, include=FALSE}
+library(magrittr) #for the pipes
+# install.packages("magrittr") if not installed
+```
+
+Let's load some sample data
+```{r}
+load("TSsimple.RData")
+```
+
+and examine its structure
+
+```{r}
+blowfly<-read.csv("blowfly.csv", header=T) #delete later
+str(blowfly)
+```
+***
+Time for a first look at Nicholson's flies 
+```{r}
+plot(blowfly$total)
+summary(blowfly$total)
+```
+
+and using a time series plotting method:
+```{r}
+plot.ts(blowfly$total)
+```
+
+#The `ts` class
+
+`plot.ts` plots the object as if it were of the special class of R objects known simply as *ts*
+
+the `ts()` function is used to convert objects to the ts class
+
+```{r}
+flies<-ts(blowfly$total)
+class(flies)
+typeof(flies)
+```
+many base/stats functions are actually designed for the 'ts' class
+example:`acf`
+```{r}
+plot(flies)
+acf(flies)
+y.filter <- filter(flies, filter = rep(1, 5))/5
+plot(y.filter)
+
+deltat(flies)
+
+plot(window(flies,100,200,1))
+
+```
+but using  them on a non- *ts* object may or may not result in an error:
+```{r}
+acf(blowfly$total)
+
+y.filter <- filter(blowfly$total, filter = rep(1, 5))/5
+plot(y.filter)
+
+deltat(blowfly$total)
+frequency(blowfly$total)
+```
+
+Warning: the `ts` class is designed only for equidistant series. other packages have other classes and functions which extend capabilities
+
+***
+#descriptive techniques and time series exploration
+
+let's return to our example
+```{r echo=FALSE}
+plot(flies)
+```
+
+This is an example of a relatively clear cyclical process, at least at the begining (points 1:200)
+
+Other, not so clear processes:
+```{r}
+
+```
+
+We can see some clearer cyclical behaviour of a section if we zoom in and explore a bit with `window()`:
+
+```{r}
+plot(window(flies,1,100))
+plot(window(flies,1,100,deltat = 5))
+plot(window(flies,1,100,deltat = 10))
+plot(window(flies,1,100,deltat = 20))
+```
+We finally lose the cyclical behaviour at ~detat=20. let's remember this...
+
+
+
+The flies series is unusually clear, and still - its cyclical behaviour is only one possible pattern.
+
+other series may represent processes that behave in a way that is not immediately recognizable, and have many things going at once.
+example:
+```{r}
+
+```
+
+
+We naturally want statistics and statistical tools that will describe the entire series' time attributes, be exectuable fast in R, and guide us in further steps (such as model fitting and forecasting). 
+
+for that, we need to undestand autocorrelation and related attributes of time series
+
+##Measures of dependence 
+
+###Background on Autocorrelation
+
+how does my data behave in relation to itself ? to illustrate the background for autocorrelation:
+
+let's look at a lag of 1 point, or 'how does this week's population relate to last week's population ?
+
+```{r}
+plot(flies[1:300],flies[2:301])
+```
+
+Clearly, there's a pattern at lag =1, at least the smaller population sizes
+
+now let's look at other lags:
+
+```{r fig.show='hold'}
+#lag=2
+plot(flies[1:300],flies[3:302])
+#lag=3
+plot(flies[1:300],flies[4:303])
+```
+
+we start losing the pattern gradually...
+
+more lags, lag = 1 to lag =8:
+
+```{r echo=FALSE, results='hide'}
+par(mfrow=c(2,4))
+sapply(1:8,function (x) plot(flies[-c(1:x)],flies[-c(361:(361-x+1))]))
+```
+
+however, at lags 9-16:
+
+```{r echo=FALSE, message=FALSE, results='hide'}
+par(mfrow=c(2,4))
+sapply(9:16,function (x) plot( flies[-c(1:x)],flies[-c(361:(361-x+1))]))
+par(mfrow=c(1,1))
+```
+
+**summary**
+
+ * we begin with a pattern, lose it, and then find it again
+ * at smaller populations, we begin with a positive correlation, lose it, then a negative correlation  which peaks at about lag = 10, lose it, and so the cycle goes.
+
+
+All of this is quite cumbersome !
+
+## The Correlogram, using `acf()`
+```{r}
+acf(flies)
+```
+
+This summarizes and charts the autocorrelation structure in the series, up to a default lag size, which is 25 in this case.
+
+The vertical axis is the relative magnitude of the  **Sample Autocorrelation Coefficients**:
+let's have a look at them
+
+
+```{r results='hide'}
+a<-acf(flies, plot = F)
+```
+
+```{r }
+a$acf %>% head(10) #for the actual factors
+```
+
+and the horizontal axis is simply the lag size.
+
+```{r echo = FALSE}
+acf(flies)
+```
+
+there's no better evidence of cycles, the flies exhibit strong positive AND negative correlation at regular intervals throughout the series, with a cycle period of 19 weeks.
+
+
+
+let's look at the entire series
+```{r}
+acf(flies, lag.max = 360,col="red")
+```
+
+We can see
+
+* the relative power of correlation at different lags
+* the (sort of regular) cyclical pattern, espescially at the beginning
+* the dimininshing positive correlation
+* some alternation between positve and negative correlations, which is typical of cycles.
+
+warning: there is bias here with incresing lag size. why ?
+
+it's fair to conclude, without further evidnece to the contrary, that perhaps
+
+  * there's some kind of a diminishing but long term "memory" in the system, up to a lag of 100 weeks. events that happened 50 weeks ago still have an influence.
+  * clear cycles with a period of 19 weeks
+  * there's a **LOT** of non-randomness in the sequence
+
+This last point is espesically important for linear and other modeling, which assume that samples are independent. we may want to stop and think before going on to perform a conventional `lm()` ! , and at the very least be aware of series' behaviour.
+
+and this illustrates why we need to explore time series intenrally before we go on to the other, external parameters.
+
+```{r echo=FALSE, fig.show='hold'}
+par(mfrow=c(2,1))
+
+plot(flies,main=NULL)
+acf(flies, lag.max = 360, main=NULL)
+
+par(mfrow=c(1,1))
+```
+
+The **Sample Autocovariance Coeefficients**
+```{r}
+acf(flies,type="covariance")$acf %>% head(10)
+```
+
+***
+##Partial Autocorrelation
+The above correlogram, produced using the sample autocorrelation coefficientsm does not account for the fact that inside a given lag size there may be correlation between internal points, (eg. the coeeficient for lag =4 included correlation for lag =2  ). it just show
+
+the **Partial Autocorrelation ** takes care of this
+
+```{r}
+pacf(flies)
+pacf(flies, lag.max = 360,col="red")
+
+```
+
+
