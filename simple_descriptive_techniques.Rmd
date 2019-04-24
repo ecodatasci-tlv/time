@@ -5,10 +5,18 @@ output:
   html_document:
     df_print: paged
 ---
-```{r eval=T, include=FALSE}
+```{r Packages, eval=T, include=FALSE}
 library(magrittr) #for the pipes
 # install.packages("magrittr") if not installed
 ```
+
+#Objectives
+
+
+
+
+***
+
 
 Let's load some sample data
 ```{r}
@@ -260,14 +268,20 @@ pacf(flies)
 pacf(flies, lag.max = 360,col="red")
 ```
 what can we take from this ?
-clues for possible underlying processes in lags 2-4 and 12-16
+the maximal negative and maximal positive lags are important places in the cycle.
+clues for possible underlying processes in lags 3 and 12
 
-the PACF can be thought of as analogous to a second derivative
+the PACF can be thought of as analogous to a derivative - points driving change in pitch or direction. 
+
+
 ***
 
 Summary till now, using just Correlograms for the entire series
 * cycle length - about 19
-* Lags 2-4, 12-16 are suspected
+* Lags 2-4, 12-16 are suspected, we should look for biological mechanisms there, when we construct an explanatory model.
+
+again, this is only from the time series itself, before considering any other data.
+
 
 ###Cross Correlation
 The total number of flys is not the only one we have...
@@ -278,7 +292,7 @@ plot(blowfly)
 
 ```
 
-we get a strong correlation between total, deaths, and emerging. but is this causative ?
+we get a strong correlation between total, deaths, and emerging. but there's an inherent problem in this analysis...
 
 ```{r, fig.show='hold'}
 blowfly %>% ts ->bf
@@ -289,20 +303,24 @@ blowfly$eggs %>% ts ->eggs
 blowfly$nonemerging %>% ts ->nonemerging
 blowfly$emerging %>% ts ->emerging
 
-acf(eggs)
-acf(flies,lag.max = 100)
-acf(emerging)
-
-
-ccf(eggs,flies)
+ccf(flies,eggs)
 ccf(flies,nonemerging)
+ccf(flies,emerging)
 ```
-Reminder: Lags 2-4, 12-16 are suspected from total
-eggs
-non emerging - 
-emerging - positive at 2-4 weeks !
+Reminder: Lags 2-4 (negative), 12-16 (positive) are suspected from `pacf()` of the total of "flies"
 
+from `ccf()` and `pacf()`
 
+`pacf`:
+eggs - negative at lag 5
+non emerging - negative at lag 3
+emerging - negative at lag 4
+
+`ccf`:
+
+eggs vs. total- negative at lags 2-3 and (-17 - -16), positive at 12-13
+non emerging vs. total - negative at lag 3
+emerging vs. total - negative at lag 4
 
 Note: positive and negative lags are non-symmetric when in comes to correlation coefficients.
 
@@ -310,29 +328,60 @@ Note: positive and negative lags are non-symmetric when in comes to correlation 
 findings:
 cycle length = still 19
 
-```{r}
-bf[,1]
-```
+larval processes *appear* to drive the cycles
+
 
 ***
-#analysing parts of a TS
+##analysing parts of a TS
 
 now let's adapt the analysis for the two parts, separately
 
 
-```{r}
+```{r, fig.show='hold'}
 first<-ts(flies[1:200])
 second<-ts(flies[201:361])
-
+par(mfrow=c(1,2))
 plot(first, ylim = c(0,14000))
 plot(second)
+par(mfrow=c(1,1))
+
 ```
 
 ***
 
-```{r}
-par(mfrow=c(2,1))
+1.visually identify a breakpoint
+
+2. apply the same steps on parts of the series to find their attributes and identify discontinuities
+```{r acf on both parts, fig.show="hold"}
+par(mfrow=c(2,2))
 acf(first)
 acf(second)
+pacf(first)
+pacf(second)
+par(mfrow=c(1,1))
 ```
+more or less the same attributes
+
+ * same shapes
+ * cycle lengths is still 19 weeks
+ * Important Lags in the second parts are shifted 1 or -1 lags , compared with the first - change points are closer to each other
+ 
+ however - 
+
+
+```{r}
+
+```
+
+##Smoothing
+
+
+## Quick breakdown
+
+
+## Conclusion & Remarks
+
+
+# Source Material and useful links
+
 
