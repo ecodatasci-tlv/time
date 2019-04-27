@@ -13,18 +13,19 @@ library(tidyverse)
 library(lubridate)
 library(hms)
 library(scales)
+library(knitr)
+theme_set(theme_bw())
 ```
 
 ```{r}
-timeSample <- data.frame(
-  data_1 = c("02-10-2019", "2/10/19"),
-  data_2 = c("2019 10 02", "19/10/2"),
-  datatime_1 = c("02-10-2019 19:00:00", "02-10-2019 7:00:00PM")
+timeSample <- tibble(
+  date_1 = c("02-10-2019", "2/10/19"),
+  date_2 = c("2019 10 02", "19/10/2"),
+  datetime_1 = c("02-10-2019 19:00:00", "02-10-2019 7:00:00PM")
 )
 ```
 
 ```{r, echo=FALSE, results='asis'}
-
 knitr::kable(timeSample)
 ```
 
@@ -32,73 +33,75 @@ knitr::kable(timeSample)
 
 ### Convert to Datetime object (class POSIXCT/POSIXIT)
 
-lubridate has multiple functions that convert factor (or any other class) to dates. For example:
+`lubridate` has multiple functions that convert factor (or any other class) to dates. For example:
 
 *  `ymd()` (year, month, day)
 *  `mdy()`
 *  `dmy()`
 
-The difference is the order of the time variables, you need to choose the one that fit for your date type.
+The difference is the order of the time variables--you need to choose the one that fits for your date type.
 
-e.g. in data_1 column the date is built in format of day-month-year so I use the dmy function
-
-```{r}
-timeSample$data_1 <- dmy(timeSample$data_1)
-
-knitr::kable(timeSample)
-```
-
-in data_2 column the date is built in format of year-month-day so i use the ymd function
+e.g. in the `date_1` column the date is built in the day-month-year format so I use the dmy function
 
 ```{r}
-timeSample$data_2 <- ymd(timeSample$data_2)
-knitr::kable(timeSample)
+timeSample %>% 
+  mutate(date_1 = dmy(date_1)) %>% 
+  kable()
 ```
 
-**Note** the only thing that matters is the order between the day/month/year, the separators can change (':' or '/' or '-' etc.) and lubridate can handle it...The same goes for 02 or 2, 2019 or 19 
+in date_2 column the date is built in format of year-month-day so i use the ymd function
+
+```{r}
+timeSample %>% 
+  mutate(date_1 = dmy(date_1),
+         date_2 = ymd(date_2)) %>% 
+  kable()
+```
+
+**Note** the only thing that matters is the order of the day/month/year. The separators can change (':' or '/' or '-' etc.) and lubridate can handle it...the same goes for 02 or 2, 2019 or 19. 
 
 ** Really cool!! **
 
-lubridate can also handle date and time object in the same manner...
+`lubridate` can also handle date and time object in the same manner...
 * note - can translate AM/PM to the right 24 clock hour
 
 ```{r}
-timeSample$datatime_1 <- dmy_hms(timeSample$datatime_1)
-knitr::kable(timeSample)
+timeSample <- timeSample %>% 
+  mutate(date_1 = dmy(date_1),
+         date_2 = ymd(date_2),
+         datetime_1 = dmy_hms(datetime_1)) 
 ```
 
 
 ```{r, echo=FALSE, results='asis'}
-knitr::kable(timeSample)
+kable(timeSample)
 ```
 
 ### Time zones
 
-when dealing with times in R its super importent to pay attention to time zones
+When dealing with times in R it's super important to pay attention to time zones
 
-if you don't specify the time zone, the default will be UTC. 
-can cause problems later on if you do all kind of time calculations and don't understand why you get weird numbers (;
+If you don't specify the time zone, the default will be UTC. This can cause problems later on if you do all kind of time calculations and don't understand why you get weird numbers (;
 
-
-The 'force_tz' function will take the time as it and change the time zone (in the 'back office') to the required one.
-its good for cases where you didn't specify the time zone for your data beforehand and now you want to fix it
+The `force_tz` function will take the time as it and change the time zone (in the 'back office') to the required one. It's good for cases where you didn't specify the time zone for your data beforehand and now you want to fix it.
 
 ```{r}
-tz(timeSample$datatime_1)
+tz(timeSample$datetime_1)
 
-timeSample$datatime_1 <- force_tz(timeSample$datatime_1, "Asia/Jerusalem")
+timeSample$datetime_1 <- force_tz(timeSample$datetime_1, "Asia/Jerusalem")
 
-tz(timeSample$datatime_1)
+tz(timeSample$datetime_1)
 ```
 
-The 'with_tz' function will **convert** your time zone to a different one.
+The `with_tz` function will **convert** your time zone to a different one.
 this function is good for cases where you want to know the time in different places
 
-
 ```{r}
-timeSample$DateTime_UTC <- with_tz(timeSample$datatime_1, "UTC")
+timeSample$datetime_utc <- with_tz(timeSample$datetime_1, "UTC")
+```
 
-knitr::kable(timeSample)
+```{r echo = FALSE}
+kable(timeSample)
 ```
 
 ** The best practice is to specify the timezone in first place **
@@ -108,12 +111,12 @@ ymd_hms("2019-07-20 08:35:00", tz = "Asia/Jerusalem")
 ```
 
 
-### other nice function in lubridate
+### Other nice functions in `lubridate`
 
 ```{r}
 Sys.time() # will give the current date and time
 
-days_in_month(today()) # how many day in this month?
+days_in_month(today()) # how many days in this month?
 days_in_month(today() + 31) # how many day in the month 31 days from now?
 
 per <- period(hours = 10, minutes = 5) # define a period you can add to other date time...
@@ -131,257 +134,224 @@ difftime(Sys.time() + period(week = 3), Sys.time(), unit = "day")
 quarter(Sys.time(), with_year = T) # the qurater of the year...
 ```
 
-
-
 ## Part 2  - Taxi data frame
 
 ```{r eval=FALSE, include=FALSE}
-
-taxi <- read_csv("chicago-taxi-rides-2016/chicago_taxi_trips_2016_01.csv")
-taxi <- taxi[1:5000, ]
-colnames(taxi)
-taxi <- select(taxi, taxi_id, trip_start_timestamp, trip_end_timestamp, trip_miles, fare, tips, tolls, trip_total, payment_type, company)
-
-colnames(taxi) <- c("taxi_id", "trip_start", "trip_end", "trip_miles", "fare", "tips", "tolls", "trip_total", "payment_type", "company")
-
-write.csv(taxi, "taxi.csv")
+# taxi <- read_csv("chicago-taxi-rides-2016/chicago_taxi_trips_2016_01.csv")
+# taxi <- taxi[1:5000, ]
+# colnames(taxi)
+# taxi <- select(taxi, taxi_id, trip_start_timestamp, trip_end_timestamp, trip_miles, fare, tips, tolls, trip_total, payment_type, company)
+# 
+# colnames(taxi) <- c("taxi_id", "trip_start", "trip_end", "trip_miles", "fare", "tips", "tolls", "trip_total", "payment_type", "company")
+# 
+# write.csv(taxi, "taxi.csv", row.names = FALSE)
 ```
 
-Upload the data
+Import the data
 
 ```{r}
-taxi <- read.csv("taxi.csv")
+taxi <- read_csv("taxi.csv")
 ```
 
 Convert to time class ("POSIXct"  or "POSIXt" )
 
 ```{r}
-
 class(taxi$trip_start)
-taxi$trip_start <- ymd_hms(taxi$trip_start, tz = "Asia/Jerusalem")
-class(taxi$trip_start)
+class(taxi$trip_end)
 
-taxi$trip_end <- ymd_hms(taxi$trip_end, tz = "Asia/Jerusalem")
+taxi <- taxi %>% 
+  mutate(trip_start = ymd_hms(trip_start, tz = "America/Chicago"),
+         trip_end = ymd_hms(trip_end, tz = "America/Chicago"))
 ```
 
 
 ### What is the week-day with the highest number of taxi trips?
 
-lubridate have a series of function that extract different variable out of the datetime
+`lubridate` has a series of functions that extract different variables out of the datetime
 
-* day()
-* month()
-* year()
-* week()
-* hour()
-
-etc.
+* `day()`
+* `month()`
+* `year()`
+* `week()`
+* `hour()`
+* etc.
 
 ```{r}
+# If label is false then is will show the week day numbers (1:7)
+wday(taxi$trip_start, label = TRUE) %>% head()
+```
 
-taxi$week_day <- wday(taxi$trip_start, label = T) # If label is false then is will show the week day numbers (1:7)
-
-knitr::kable(head(taxi))
-
-taxi_trips <- taxi %>% group_by(week_day) %>% summarise("trips" = n())
-
-knitr::kable(taxi_trips)
+```{r}
+taxi %>% 
+  mutate(week_day = wday(trip_start, label = TRUE)) %>% 
+  ggplot(aes(week_day)) +
+  geom_bar()
 ```
 
 Friday is the most busy day...
 
 ### What is the duration of each taxi trip?
 
+`?difftime`
+
 ```{r}
-
-?difftime
-
-taxi$duration <- difftime(taxi$trip_end, taxi$trip_start, units = "mins")
-
-knitr::kable(head(taxi))
+taxi <- taxi %>% 
+  mutate(duration = difftime(trip_end, trip_start, 
+                             units = "mins")) %>% 
+  filter(duration < 100) #remove the abnormally long rides
+  
+taxi %>% 
+  ggplot(aes(duration)) +
+  geom_histogram(bins = 15) +
+  xlim(-5, 100)
 ```
 
-### It seems that trips with duration below 15 mins are default to zero...
+### It seems that trips with duration below 15 mins default to zero...
 
-lets assume that this is a mistake and change all the zero duration to a five minus drive
+Let's assume that this is a mistake and change all the zero duration to a five minus drive
 
 ```{r}
 five_min <- as.period(5, unit = "mins") # create five minute object
 
-# if the duration is 0 add five minutes
+taxi <- taxi %>%
+  
+  # if the duration is 0 add five minutes
+  mutate(alt_end_time = ifelse(duration == 0,
+                               trip_end + five_min,
+                               trip_end)) %>% 
+  # the output is in numeric format - change to datetime format and don't forget the time zone
+  mutate(alt_end_time = as_datetime(alt_end_time, tz = "America/Chicago")) %>% 
+  
+  # fix the duration
+  mutate(fix_duration = difftime(alt_end_time, trip_start, 
+                                 units = "mins"))
 
-taxi$alt_end_time <- ifelse(taxi$duration == 0,
-  taxi$trip_end + five_min,
-  taxi$trip_end
-)
-
-#  the output is in numeric format - change to datetime formt and dont forget the time zone
-
-taxi$alt_end_time <- as_datetime(taxi$alt_end_time, tz = "Asia/Jerusalem")
-
-# fix the duration
-
-taxi$fix_duration <- difftime(taxi$alt_end_time, taxi$trip_start, units = "mins")
-
-knitr::kable(head(taxi))
+taxi %>% 
+  filter(fix_duration < 100) %>% 
+  ggplot(aes(fix_duration)) +
+  geom_histogram(bins = 15) +
+  xlim(-5, 100)
 ```
 
-# when are the longest trips? morning, noon or night?
-
-lets add time category to the data  by using the interval function
-
-example:
-```{r}
-
-example_interval <- interval(ymd("2018-01-31"), ymd("2018-02-16"))
-
-ymd("2018-03-13") %within% example_interval
-ymd("2018-02-13") %within% example_interval
-```
-
-first create the boundary of each interval (need to be combination of the **date** and hour)
-then use ifelse to match each trip to the proper time category
-
+# When are the longest trips? Morning, noon or night?
 
 ```{r}
-taxi$morning_start <- ymd_hms(paste(as.Date(taxi$trip_start), "05:00:00", sep = " "), tz = "Asia/Jerusalem")
-taxi$noon_start <- ymd_hms(paste(as.Date(taxi$trip_start), "12:00:00", sep = " "), tz = "Asia/Jerusalem")
-taxi$evening_start <- ymd_hms(paste(as.Date(taxi$trip_start), "18:00:00", sep = " "), tz = "Asia/Jerusalem")
+taxi <- taxi %>% 
+  mutate(hour = hour(trip_start),
+         time_category = case_when(
+           between(hour, 5, 12) ~ "morning",
+           between(hour, 12, 18) ~ "noon",
+           TRUE ~ "night"
+         )) 
 
-taxi$time_categoty <- ifelse(taxi$trip_start %within% interval(taxi$morning_start, taxi$noon_start),
-  "Morning", ifelse(taxi$trip_start %within% interval(taxi$noon_start, taxi$evening_start),
-    "Noon", "Night"
-  )
-)
-
-knitr::kable(head(taxi))
-
-taxi_trip_category <- taxi %>% group_by(time_categoty) %>% summarise("mean_miles" = mean(trip_miles))
-
-knitr::kable(head(taxi))
+ggplot(taxi, aes(time_category, trip_miles)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  coord_flip()
 ```
-
-*  if you don't want to add the extra columns to your data can be done also in a for-loop or a function...
 
 # Round dates and times
 
-assume i want to round the trips to half hour unit so I can group them better...
+Assume I want to round the trips to half hour unit so I can group them better...
 
-the unit can be other combination as well...
+the unit can be other combinations as well...
 
 e.g.
 
-*  "2 day"
-*  "5 mins"
-*  "quarter"
-
-etc.
+*  `"2 day"`
+*  `"5 mins"`
+*  `"quarter"`
 
 ```{r}
-
-taxi$round_hour <- round_date(taxi$trip_start, unit = "30 mins")
+(taxi <- taxi %>% 
+  mutate(trip_start = round_date(trip_start, 
+                                 unit = "1 hour")))
 ```
 
-other functions are
-
-"floor_date" and "ceiling_date" that will round the time down or up respectively
+Other functions are `floor_date()` and `ceiling_date()` that will round the time down or up respectively
 
 ### Plots:
 
-some basic plot
+A basic plot
 
 ```{r}
-p <- ggplot(taxi, aes(taxi$trip_start, taxi$trip_total)) +
-  geom_line(color = "blue") + theme_bw() +
-  xlab("Trip start") + ylab("Trip cost ($)")
+(p <- ggplot(taxi, aes(trip_start, fare)) +
+  geom_point(color = "blue", alpha = 0.1) + 
+  xlab("Trip start") + ylab("Trip cost ($)"))
 ```
 
-to control time axis use:
-
-'scale_x_datetime'
-
-or
-
-'scale_x_date'
-
-if you only have date object
+To control the time axis use `scale_x_datetime()` or `scale_x_date()` if you only have date object
 
 ```{r}
-p + scale_x_datetime(date_breaks = "5 day", labels = date_format("%d-%m-%Y"))
+p + scale_x_datetime(date_breaks = "5 day", 
+                     labels = date_format("%d-%m-%Y"))
 ```
 
-the 'date_break' argument control for the ticks mark
+The `date_break` argument controls for the tick mark
 
-the 'labels' argument control for the label of your data
+The `labels` argument controls for the label of your data
 
-as this function don't work with lubridate the syntax here is different
+Note that the syntax here is different...
 
-before each time variable need to add % sign, then the symbol for the time argument and the desired separator
+before each time variable, you need to add % sign, then the symbol for the time argument and the desired separator
 
 link to the date symbol guide:
 
 link[]
 
 ```{r}
-
-ex_1 <- p + scale_x_datetime(date_breaks = "5 day", labels = date_format("%d-%m-%Y"))
-
-ex_1
-
-ex_2 <- p + scale_x_datetime(date_breaks = "12 hours", labels = date_format("%d-%m-%y %H:%M")) +
+p + scale_x_datetime(date_breaks = "12 hours",
+                     labels = date_format("%d-%m-%y %H:%M")) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-ex_2
 ```
 
-how to show only some of the time series
+How to show only some of the time series
 
 ```{r}
-startTime <- ymd_hms("2016-01-01 06:00:00", tz = "Asia/Jerusalem")
-endTime <- ymd_hms("2016-01-05 06:00:00", tz = "Asia/Jerusalem")
+start_time <- ymd_hms("2016-01-01 06:00:00", tz = "Asia/Jerusalem")
+end_time <- ymd_hms("2016-01-05 06:00:00", tz = "Asia/Jerusalem")
 
 # create a start and end time R object
-start.end <- c(startTime, endTime)
-start.end
+start_end <- c(start_time, end_time)
 
-ex_3 <- p + scale_x_datetime(limits = start.end, date_breaks = "6 hours", labels = date_format("%d-%m-%y %H:%M")) +
+p + scale_x_datetime(limits = start_end,
+                     date_breaks = "12 hours", 
+                     labels = date_format("%d-%m-%y %H:%M")) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-ex_3
 ```
 
 ## By hour plots
 
 If you want to plot hourly patterns  there are 2 options
 
-####1. use the hms package that can extract only the time variable from the date_time
+#### 1. use the `hms` package that can extract only the time variable from the date-time
+
 ```{r}
+taxi <- taxi %>% 
+  mutate(time = as.hms(trip_start)) 
 
-taxi$time <- as.hms(taxi$trip_start)
-
-ggplot(taxi, aes(x = taxi$time, y = taxi$fix_duration)) + geom_point()
+ggplot(taxi, aes(time, fare)) +
+  geom_point(color = "blue", alpha = 0.1) +
+  scale_x_time(labels = function(x) strftime(x, "%H:%M"))
 ```
 
-the problem - this package don't work fluently with the ggplot and its not clear how to customize the axis
-(also the information online is scare)
+#### Option 2
 
-####option 2
-
-give one fake date to all the observation and customize with the scale_x_datetime arguments
+Give one fake date to all the observation and customize with the `scale_x_datetime()` arguments
 
 ```{r}
+taxi <- taxi %>% 
+  mutate(fake_date = ymd_hms(paste("2000-01-01", time)))
 
-taxi$fake_date <- paste("2000-01-01", taxi$time, sep = " ")
-taxi$fake_date <- ymd_hms(taxi$fake_date)
+(p_2 <- ggplot(taxi, aes(fake_date, fare)) +
+    geom_point(color = "blue", alpha = 0.1) + 
+    xlab("Trip start (hour)") + 
+    ylab("Trip cost ($)"))
 
-p_2 <- ggplot(taxi, aes(taxi$fake_date, taxi$trip_total)) +
-  geom_point(color = "blue") + theme_bw() +
-  xlab("Trip start (hour)") + ylab("Trip cost ($)")
-
-p_2 <- p_2 + scale_x_datetime(date_breaks = "2 hours", labels = date_format("%H:%M")) +
+p_2 + 
+  scale_x_datetime(date_breaks = "2 hours", 
+                   labels = date_format("%H:%M")) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-p_2
 ```
 
 
