@@ -58,7 +58,7 @@ plot(window(flies,100,200,1))
 
 ```
 but using  them on a non- *ts* object may or may not result in an error:
-```{r}
+```{r eval=FALSE, include=FALSE}
 acf(blowfly$total)
 
 y.filter <- filter(blowfly$total, filter = rep(1, 5))/5
@@ -78,9 +78,16 @@ let's return to our example
 plot(flies)
 ```
 
-This is an example of a relatively clear cyclical process, at least at the begining (points 1:200)
+This is an example of a relatively clear cyclical process, at least at the begining (points 1:200). the second part (200:361) looks less regular and with an upward trend.
 
-Other, not so clear processes:
+Exploratory Questions
+
+ * what are the cycle periods ?
+ * is there any hidden periodical behaviour that is not immediately apparent ?
+ * Do these 2 parts behave similarly or is there a fundamental change ? which attributes  of the first part are conserved in the second part
+ * can we tie this behaviour to external parameters ?
+
+Other, not so clear examples:
 ```{r}
 
 ```
@@ -106,7 +113,7 @@ example:
 ```
 
 
-We naturally want statistics and statistical tools that will describe the entire series' time attributes, be exectuable fast in R, and guide us in further steps (such as model fitting and forecasting). 
+We naturally want  tools that will describe the entire series' and parts of the series' attributes, be exectuable fast in R, and guide us in further steps (such as model fitting and forecasting). 
 
 for that, we need to undestand autocorrelation and related attributes of time series
 
@@ -119,7 +126,7 @@ how does my data behave in relation to itself ? to illustrate the background for
 let's look at a lag of 1 point, or 'how does this week's population relate to last week's population ?
 
 ```{r}
-plot(flies[1:300],flies[2:301])
+plot(flies[1:350],flies[2:351])
 ```
 
 Clearly, there's a pattern at lag =1, at least the smaller population sizes
@@ -128,9 +135,9 @@ now let's look at other lags:
 
 ```{r fig.show='hold'}
 #lag=2
-plot(flies[1:300],flies[3:302])
+plot(flies[1:350],flies[3:352])
 #lag=3
-plot(flies[1:300],flies[4:303])
+plot(flies[1:350],flies[4:353])
 ```
 
 we start losing the pattern gradually...
@@ -158,7 +165,7 @@ par(mfrow=c(1,1))
 
 All of this is quite cumbersome !
 
-## The Correlogram, using `acf()`
+### The Correlogram, using `acf()`
 ```{r}
 acf(flies)
 ```
@@ -221,20 +228,111 @@ par(mfrow=c(1,1))
 ```
 
 The **Sample Autocovariance Coeefficients**
+
+We could also look at the correspoding covariance coefficients by change the type parameter.
 ```{r}
 acf(flies,type="covariance")$acf %>% head(10)
 ```
 
-***
-##Partial Autocorrelation
-The above correlogram, produced using the sample autocorrelation coefficientsm does not account for the fact that inside a given lag size there may be correlation between internal points, (eg. the coeeficient for lag =4 included correlation for lag =2  ). it just show
 
-the **Partial Autocorrelation ** takes care of this
+***
+###Partial Autocorrelation
+Correlograms produced using the sample *autocorrelation* coefficients do not account for the fact that for a given lag size there may be correlation between internal points, (eg. values that are 4 points apart were correlated, but so do values that are 2 points apart).
+
+We sometimes want to control for the internal correlations inside the lag, or in other words, to check what would have been the correlation coefficients, had all the internal lags' coefficients were forced to zero. 
+
+the **Partial Autocorrelation ** is the relationship between this week's population and the population at lag n when we have already controlled for the correlations between all od the successive weeks between this week and week n
+
+We only need to use `pacf` or `acf(type="partial")` instead of the default
 
 ```{r}
+#Autocorrelation Coefficients
+acc<-a$acf %>% head(12) %>% round(2)
+#Partial Autocorrelation Coefficients
+partial.acc<-pacf(flies, plot = F) %>% .$acf %>% head(12) %>% round(2)
+
+plot(1:12,acc,xlab = "Lag",ylab="Coefficient")
+points(1:12,partial.acc,col = "green")
+lines(1:12,rep(0,12))
+legend("topright", c("ac coefficients", "Partial ac coeffients"),col = c("black","green"),pch = c(1,1))
+
 pacf(flies)
 pacf(flies, lag.max = 360,col="red")
+```
+what can we take from this ?
+clues for possible underlying processes in lags 2-4 and 12-16
+
+the PACF can be thought of as analogous to a second derivative
+***
+
+Summary till now, using just Correlograms for the entire series
+* cycle length - about 19
+* Lags 2-4, 12-16 are suspected
+
+###Cross Correlation
+The total number of flys is not the only one we have...
+
+plotting the dataframe variables against eachother
+```{r}
+plot(blowfly)
 
 ```
 
+we get a strong correlation between total, deaths, and emerging. but is this causative ?
+
+```{r, fig.show='hold'}
+blowfly %>% ts ->bf
+plot(bf)
+
+
+blowfly$eggs %>% ts ->eggs
+blowfly$nonemerging %>% ts ->nonemerging
+blowfly$emerging %>% ts ->emerging
+
+acf(eggs)
+acf(flies,lag.max = 100)
+acf(emerging)
+
+
+ccf(eggs,flies)
+ccf(flies,nonemerging)
+```
+Reminder: Lags 2-4, 12-16 are suspected from total
+eggs
+non emerging - 
+emerging - positive at 2-4 weeks !
+
+
+
+Note: positive and negative lags are non-symmetric when in comes to correlation coefficients.
+
+
+findings:
+cycle length = still 19
+
+```{r}
+bf[,1]
+```
+
+***
+#analysing parts of a TS
+
+now let's adapt the analysis for the two parts, separately
+
+
+```{r}
+first<-ts(flies[1:200])
+second<-ts(flies[201:361])
+
+plot(first, ylim = c(0,14000))
+plot(second)
+```
+
+***
+
+```{r}
+par(mfrow=c(2,1))
+acf(first)
+acf(second)
+```
 
