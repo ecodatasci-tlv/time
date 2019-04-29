@@ -3,14 +3,77 @@ title: "Simple Descriptive Techniques for Time Series Analysis"
 author: "Amir R"
 output:
   rmdformats::readthedown:
-    df_print: paged
+   df_print: paged
 ---
 ```{r Packages, eval=T, include=FALSE}
 library(magrittr) # for the pipes
 # install.packages("magrittr") if not installed
 ```
 
-# Objectives
+# Intro
+
+What's a time series anyway ?
+
+```{r}
+
+```
+
+Types of time series:
+
+Defined by the type of time axis and 
+
+
+ * The Time Variable/Axis - Continuous vs. Discrete
+  + Missing Values ?
+  + Equidistant
+  
+ * The Variable being recorded / generated
+
+
+## Why bother ?
+
+* Variables in Time almost always behave differently than in space
+
+<!-- and the areas of statistics that we usually study in the context of biology is, in many cases, not fit to handle them -->
+
+*  Very developed mathematical field with many applications in 
+
+ + Electromagnetic / Audio Signal Analysis
+ + Signal Processing
+ + Sales / Marketing 
+ + Econometrics
+ + Materials and Manufacturing Control
+
+* Much literature and expertise outside Ecology / Biology
+<!-- = opportunity -->
+
+## Terminology
+
+
+
+## Objectives of Time Series Analysis
+
+
+
+## Approaches
+
+## Goals For today
+
+* Study the most basic R tools for exploration
+ + No packages other than the pre-installed ones
+* Understand the concept of serial correlation in time
+
+<!-- and be able to construct a list of lag-clues -->
+
+* Introduce only things that can be relevant to everybody
+
+Warning: the following program does not include any
+* Statistical Theory
+* Statistical Methodology
+* Model fitting or Comparison
+* Forecasting 
+
+
 
 ***
 
@@ -776,10 +839,73 @@ in this case a *negative* AR(1) with rapid respone
 
 ecological models of equilibrium population dynamics are typically Autoregressive.
 
-## Conclusion & Remarks
+# Conclusion & Remarks
 
 
-# Source Material and useful links
+## Warnings
+
+ * Most of the methodology of time series covers only discrete time and continuous (or pseudo) variable
+ 
+# Terminology & Abbreviations 
 
 
+R functions
 
+|:-----|:-----| 
+| ts  | construct a time series object |
+| window |
+| acf , pacf , ccf | study serial correlation
+
+
+|:-----|:-----| 
+| Equidistant  | A series where the variable is recorded at equal intervals (e.g every month)  |
+
+
+Process Types
+
+
+Abbreviation and Notation
+
+|:-----|:-----| 
+| ACF or ac.f  | Autocorrelation Function |
+| pACF | Partial (corr. coefficient) ACF |
+| AR   | Autoregressive  |
+| MA   | Moving Average  |
+#Source Material and useful links
+
+## Useful Links
+
+CRAN Task View: Time Series Analysis
+https://cran.r-project.org/web/views/TimeSeries.html
+
+Time Series Modeling basics, explained simply albeit with some theorey mistakes
+https://www.analyticsvidhya.com/blog/2015/12/complete-tutorial-time-series-modeling/
+
+Basic Data Analysis for Time Series with R
+https://library.books24x7.com/toc.aspx?bookid=63461
+(requires a library login + a books 24/7 account)
+
+Looking for real ecological time series ?
+
+* BIOTIME - a Global database of biodiversity time series
+http://biotime.st-andrews.ac.uk/
+
+* NEON - a repository for LTERs
+
+https://data.neonscience.org/browse-data?showAllDates=true&showAllSites=true&showTheme=org
+
+* DEIMS - another repository for LTERs
+https://deims.org/
+
+## Bibliography
+
+* Textbooks and R manuals
+ 
+ + Chatfield - Chapters 1, 2 & 6
+ Chatfield, Christopher. 2004. The Analysis of Time Series: An Introduction. 6th ed. Texts in Statistical Science. Boca Raton, FL: Chapman & Hall/CRC.
+ + Shumway & Stoffer - Chapters 1, 2 & 4
+ Shumway, Robert H., and David S. Stoffer. 2006. Time Series Analysis and Its Applications: With R Examples. 2nd [updated] ed. Springer Texts in Statistics. New York: Springer.
+ + The R book by Crawley - Chapter 24
+Crawley, Michael J. 2013. The R Book. Second edition. Chichester, West Sussex, United Kingdom: Wiley.
+
+There are many others...
