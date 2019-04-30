@@ -2,21 +2,48 @@
 title: "Simple Descriptive Techniques for Time Series Analysis"
 author: "Amir R"
 output:
-  rmdformats::readthedown:
-   df_print: paged
+  ioslides_presentation:
+    incremental: true
+    widescreen: true
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    df_print: paged
 ---
 ```{r Packages, eval=T, include=FALSE}
 library(magrittr) # for the pipes
 # install.packages("magrittr") if not installed
 ```
 
+
 # Intro
+
+---
 
 What's a time series anyway ?
 
-```{r}
 
-```
+*"Is it recorded or produces with temporal information ?"*
+
+---
+
+frequently encountered in day to day life
+
+* Marketing Prices, Sales, economic indices
+* State level Demographic information
+* Physical, such as Weather history
+frequently encountered outside the lab
+
+---
+
+frequently encountered ou the lab
+
+* Experimental Variables
+* Demographic (human or otherwise) = Pop. & community ecology
+* Environmental 
+* Special Instrument output
+
+---
 
 Types of time series:
 
@@ -29,6 +56,7 @@ Defined by the type of time axis and
   
  * The Variable being recorded / generated
 
+---
 
 ## Why bother ?
 
@@ -36,46 +64,89 @@ Defined by the type of time axis and
 
 <!-- and the areas of statistics that we usually study in the context of biology is, in many cases, not fit to handle them -->
 
-*  Very developed mathematical field with many applications in 
+* Explaining Observations - Multiple regression models are helpful, but they are not really designed to handle real time-series data
 
- + Electromagnetic / Audio Signal Analysis
- + Signal Processing
- + Sales / Marketing 
- + Econometrics
- + Materials and Manufacturing Control
+* For Real time series - Sample Summary Statistics (eg. Sample Mean and Variance )  are potentially misleading by themselves.
+
+  + They do not have their usual properties
+  + we have to compute them (also for Time Series Statistics), but to describe populations we better remove systematic components from the samples first.
+  
+---
+
+* Very developed mathematical field with many applications in 
+
+  + Electromagnetic / Audio Signal Analysis
+  + Signal Processing
+  + Sales / Marketing 
+  + Econometrics
+  + Materials and Manufacturing Control
 
 * Much literature and expertise outside Ecology / Biology
 <!-- = opportunity -->
 
-## Terminology
+---
+## a bit of Terminology
 
 
+---
 
 ## Objectives of Time Series Analysis
 
+ * Description - what we are here for today
+ * Explanation
+ * Predictions, both with and without external variables
+ * Control
 
+---
 
 ## Approaches
 
+ * Simple Descriptive techniques - plotting, looking for cycles etc.
+ * Inference by Analysis in the Time Domain - based on the Correlogram
+ * Inference by Analysis in the Frequency Domain - based on the Spectrogram
+ * Linear systems - one system is considered the input, another the output
+ * Modeling and Model Comparison 
+
+---
+
 ## Goals For today
 
-* Study the most basic R tools for exploration
- + No packages other than the pre-installed ones
-* Understand the concept of serial correlation in time
+1. Learn the most basic R tools for exploration
+
+   * No packages other than the pre-installed ones
+   
+   * Introduce only things that can be relevant to everybody
+
+2. Serial correlation in time
+
+   * understand what it is
+   
+   * be able to quantify it
 
 <!-- and be able to construct a list of lag-clues -->
 
-* Introduce only things that can be relevant to everybody
+(@) Dynamics - construct a set of clues in terms of which lags are important in our system's dynamics.
+
+---
+
+Without going over methodology, assumptions checking, theory and math notation & formulae
+
+---
 
 Warning: the following program does not include any
+
+* Discussion of outliers
 * Statistical Theory
 * Statistical Methodology
 * Model fitting or Comparison
 * Forecasting 
 
+Not relevant to
 
+* Binary, Point Processes 
+* Continuous Time
 
-***
+---
 
 Let's load some sample data and examine its structure
 
@@ -83,7 +154,9 @@ Let's load some sample data and examine its structure
 blowfly <- read.csv("blowfly.csv", header = T) 
 str(blowfly)
 ```
-***
+
+---
+
 Time for a first look at Nicholson's flies 
 
 ```{r}
@@ -91,13 +164,19 @@ plot(blowfly$total)
 summary(blowfly$total)
 ```
 
+---
+
 and using a time series plotting method:
 
 ```{r}
 plot.ts(blowfly$total)
 ```
 
+---
+
 # The `ts` class
+
+---
 
 `plot.ts` plots the object as if it were of the special class of R objects known simply as *ts*
 
@@ -109,45 +188,33 @@ class(flies)
 typeof(flies)
 ```
 
+---
+
 many base/stats functions are actually designed for the 'ts' class
-example: `acf`
 
-```{r}
-plot(flies)
-acf(flies)
-y.filter <- filter(flies, filter = rep(1, 5)) / 5
-plot(y.filter)
-
-deltat(flies)
-
-plot(window(flies, 100, 200, 1))
-```
-
-but using  them on a non- *ts* object may or may not result in an error:
-<!-- actually all of these work.... -->
-
-```{r eval=FALSE, include=FALSE}
-acf(blowfly$total)
-
-y.filter <- filter(blowfly$total, filter = rep(1, 5)) / 5
-plot(y.filter)
-
-deltat(blowfly$total)
-frequency(blowfly$total)
-```
+but using them on a non- *ts* object may or may not result in an error
 
 Warning: the `ts` class is designed only for equidistant series. other packages have other classes and functions which extend capabilities
 
-***
-# descriptive techniques and time series exploration
+---
 
-let's return to our example
+# Time series exploration & Descriptive techniques 
+
+---
 
 ```{r echo=FALSE}
 plot(flies)
 ```
 
-This is an example of a relatively clear cyclical process, at least at the begining (points 1:200). the second part (200:361) looks less regular and with an upward trend.
+   * This is an example of a relatively clear cyclical process, at least at the begining (points 1:200).
+   * the second part (200:361) looks less regular and
+   * with an upward trend.
+
+---
+
+```{r echo=FALSE}
+plot(flies)
+```
 
 ## Exploratory Questions
 
@@ -156,7 +223,28 @@ This is an example of a relatively clear cyclical process, at least at the begin
  * Do these 2 parts behave similarly or is there a fundamental change ? which attributes  of the first part are conserved in the second part
  * can we tie this behaviour to external parameters ?
 
-Other, not so clear examples:
+---
+
+We can see some clearer cyclical behaviour of a section if we zoom in and explore a bit with `window()`:
+
+```{r}
+plot(window(flies, 1, 100))
+plot(window(flies, 1, 100, deltat = 5))
+plot(window(flies, 1, 100, deltat = 10))
+plot(window(flies, 1, 100, deltat = 20))
+```
+
+We finally lose the cyclical behaviour at ~detat=20. let's remember this...
+
+---
+
+The flies series is unusually clear, and still - its cyclical behaviour is only one possible pattern.
+
+other series may represent processes that behave in a way that is not immediately recognizable, and have many things going at once.
+
+---
+
+examples
 
 ```{r synthetic series, include=FALSE}
 w <- rnorm(500, 0, 1) # this is actually a perfect white noise
@@ -180,36 +268,23 @@ plot.ts(Y)
 par(mfrow = c(1, 1))
 ```
 
-We can see some clearer cyclical behaviour of a section if we zoom in and explore a bit with `window()`:
-
-```{r}
-plot(window(flies, 1, 100))
-plot(window(flies, 1, 100, deltat = 5))
-plot(window(flies, 1, 100, deltat = 10))
-plot(window(flies, 1, 100, deltat = 20))
-```
-
-We finally lose the cyclical behaviour at ~detat=20. let's remember this...
-
-The flies series is unusually clear, and still - its cyclical behaviour is only one possible pattern.
-
-other series may represent processes that behave in a way that is not immediately recognizable, and have many things going at once.
-example:
-
-```{r}
-
-```
-
+---
 
 We naturally want  tools that will describe the entire series' and parts of the series' attributes, be exectuable fast in R, and guide us in further steps (such as model fitting and forecasting). 
 
-for that, we need to undestand autocorrelation and related attributes of time series
+for that, we need to undestand how a given series evolves through time - via autocorrelation and related attributes of time series
+
+---
 
 ## Measures of serial dependence 
+
+---
 
 ### Background on Autocorrelation - The lag plot.
 
 how does my data behave in relation to itself ? to illustrate the background for autocorrelation:
+
+---
 
 let's look at a lag of 1 point, or 'how does this week's population relate to last week's population ?
 
@@ -219,6 +294,8 @@ plot(flies[1:350], flies[2:351])
 
 Clearly, there's a pattern at lag =1, at least in the smaller population sizes
 
+---
+
 now let's look at other lags:
 
 ```{r fig.show='hold'}
@@ -227,6 +304,8 @@ plot(flies[1:350], flies[3:352])
 # lag=3
 plot(flies[1:350], flies[4:353])
 ```
+
+---
 
 we start losing the pattern gradually, as we go to higher lags...
 
@@ -240,6 +319,8 @@ sapply(1:8, function(x) plot(flies[-c(1:x)], flies[-c(361:(361 - x + 1))]))
 ```{r}
 lag.plot(flies, lag = 8, layout = c(2, 4), diag = T)
 ```
+
+---
 
 however, at lags 9-16:
 
@@ -258,7 +339,7 @@ lag.plot(flies, lags = 8, set.lags = 9:16, layout = c(2, 4), diag = T)
  * we begin with a pattern, lose it, and then find it again
  * at smaller populations, we begin with a positive correlation, lose it, then a negative correlation  which peaks at about lag = 10, lose it, and so the cycle goes.
 
-
+---
 All of this is quite cumbersome !
 
 ### The Correlogram, using `acf()`
@@ -268,9 +349,13 @@ acf(flies)
 
 This summarizes and charts the autocorrelation structure in the series, up to a default lag size, which is 25 in this case.
 
-The vertical axis is the relative magnitude of the  **Sample Autocorrelation Coefficients**:
-let's have a look at them
+The vertical axis is the  magnitude of the  **Sample Autocorrelation Coefficients**. they measure the relative correlation between obsevations at different distances apart (lags)
 
+and the horizontal axis is simply the lag size.
+
+---
+
+let's have a look at these **Sample Autocorrelation Coefficients**
 
 ```{r results='hide'}
 a <- acf(flies, plot = F)
@@ -280,7 +365,8 @@ a <- acf(flies, plot = F)
 a$acf %>% head(10) # for the actual factors
 ```
 
-and the horizontal axis is simply the lag size.
+---
+
 
 ```{r echo = FALSE}
 acf(flies)
@@ -288,7 +374,7 @@ acf(flies)
 
 there's no better evidence of cycles, the flies exhibit strong positive AND negative correlation at regular intervals throughout the series, with a cycle period of 19 weeks.
 
-
+---
 
 let's look at the entire series
 ```{r}
@@ -302,17 +388,29 @@ We can see
 * the dimininshing positive correlation
 * some alternation between positve and negative correlations, which is typical of cycles.
 
+---
+
+```{r}
+acf(flies, lag.max = 360, col = "red")
+```
+
 warning: there is bias here with incresing lag size. why ?
 
 it's fair to conclude, without further evidnece to the contrary, that perhaps
 
   * there's some kind of a diminishing but long term "memory" in the system, up to a lag of 100 weeks. events that happened 50 weeks ago still have an influence.
   * clear cycles with a period of 19 weeks
+
+---
+
   * there's a **LOT** of non-randomness in the sequence
 
 This last point is espesically important for linear and other modeling, which assume that samples are independent. we may want to stop and think before going on to perform a conventional `lm()` ! , and at the very least be aware of series' behaviour.
 
 and this illustrates why we need to explore time series intenrally before we go on to the other, external parameters.
+
+
+---
 
 ```{r echo=FALSE, fig.show='hold'}
 par(mfrow = c(2, 1))
@@ -322,6 +420,8 @@ acf(flies, lag.max = 360, main = NULL)
 
 par(mfrow = c(1, 1))
 ```
+
+---
 
 The **Sample Autocovariance Coeefficients**
 
@@ -337,6 +437,8 @@ acf(flies, type = "covariance")$acf %>% head(10)
 Correlograms produced using the sample *autocorrelation* coefficients do not account for the fact that for a given lag size there may be correlation between internal points, (eg. values that are 4 points apart were correlated, but so do values that are 2 points apart).
 
 We sometimes want to control for the internal correlations inside the lag, or in other words, to check what would have been the correlation coefficients, had all the internal lags' coefficients were forced to zero. 
+
+---
 
 the **Partial Autocorrelation ** is the relationship between this week's population and the population at lag n when we have already controlled for the correlations between all od the successive weeks between this week and week n
 
@@ -354,7 +456,6 @@ lines(1:12, rep(0, 12))
 legend("topright", c("ac coefficients", "Partial ac coeffients"), col = c("black", "green"), pch = c(1, 1))
 
 pacf(flies)
-pacf(flies, lag.max = 360, col = "red")
 ```
 
 what can we take from this ?
@@ -370,20 +471,24 @@ Summary till now, using just Correlograms for the entire series
 * cycle length - about 19
 * Lags 2-4, 12-16 are suspected: we should look for biological mechanisms there, when we construct an explanatory model.
 
-again, this is only from the time series itself, before considering any other data.
+only from the time series itself, before considering any other data +
 
 
 ### Cross Correlation
 
 The total number of flies is not the only one we have...
 
-we could always plotting the dataframe variables against each other
+we could always scatter-plot the dataframe variables against each other
+
+---
 
 ```{r}
 plot(blowfly, lower.panel = NULL)
 ```
 
 we get a strong correlation between total, deaths, and emerging. but there's an inherent problem in this analysis...
+
+---
 
 ```{r, fig.show='hold'}
 blowfly %>% ts() -> bf
@@ -474,6 +579,8 @@ what are the notable differences between the 2 parts ?
 
 ***
 
+Simplest Approach:
+
 1.visually identify a breakpoint
 
 2. apply the same steps on parts of the series to find their attributes and identify discontinuities
@@ -492,12 +599,12 @@ shows generally the same attributes between the 2 parts
  * same shapes
  * cycle lengths is still 19 weeks
  * Important Lags in the *second* parts are shifted 1-2 or (-1) - (-2) lags , compared with the *first* - change points are somewhat closer to each other
- 
- 
+
 *** 
 
 however - there's a problem....
 <!-- the first and second parts appear to follow different trends -->
+
 ***
 
 ### de-trending using `lm()`
@@ -602,7 +709,14 @@ acf(second.diff, main = "")
 par(mfrow = c(1, 1))
 ```
 
-Differencing is more successfull in creating
+### Detrending Remarks
+
+Differencing is usually more successfull than removing fitted model values in creating stationary series
+
+De-trending is the goal of many methods in time series analysis that are not presented here
+
+
+
 
 ***
 
@@ -841,28 +955,74 @@ ecological models of equilibrium population dynamics are typically Autoregressiv
 
 # Conclusion & Remarks
 
+The description of a given time series is usually a cyclical process by itself
+
+some methods that are covered here are also useful in other contexts (e,g. model fitting, control)
 
 ## Warnings
 
- * Most of the methodology of time series covers only discrete time and continuous (or pseudo) variable
+ * many methods, not described here, do have some underlying assumption. most commonly the assumption of *Stationarity* 
+ * Most of the methodology of time series covers **only discrete time and continuous (or pseudo-continuous) variable**
+ * many of the methods do not describe short series well enough for some ecological time series
+  
+ 
+ <!-- think about ACF for a 5 or 10 point Richness series   -->
  
 # Terminology & Abbreviations 
 
 
-R functions
+
+## R functions
 
 |:-----|:-----| 
 | ts  | construct a time series object |
-| window |
+| ts.plot | plot a vector or matrix as if they were of the special 'ts' class.
+| window | have a look at sections od series
+| lag.plot | create a scatterplot matrix by lags
 | acf , pacf , ccf | study serial correlation
+| Diff | recode the series by differencing 
+| lm | construct a Linear Model, such a simple univariate regression to remove a trend
+| filter, ksmooth, smooth.splive | applying linear and non linear filters. in the context of this lesson - for smoothing
+## Series and Process Terminology
 
+
+*Process* - a mathematical description of observations as a function of time (and perhaps other variables)
+
+*Stationary Process* (intuitive definition, non formal) : 
+
+An ideal process, in the following terms
+
+ * No systemic change in mean (no trend)
+ * No systemic change in variance
+ * Strictly periodic variations have been removed
+ 
+In other words, The properties of various sections of the data are constant
+
+ * Usually in the context of model fitting
+ * Non Stationarity components (trend, cycles) may me the focus, or we may want to remove them prior to analysis
+ * much of the probability theiry of time series analysis   concenrs only stationary series, so we may need to transform a given series to stationary
+
+NOTE: No real process is strictly Stationary !
+
+
+Series
 
 |:-----|:-----| 
+| Continuous | Observations are made continuously through time (even if the variable of interest can only take certain)
+| Deterministic | a time series that can be predicted exactly, by a well defined mathematical process 
+| Discrete | observations are taken at specific times
 | Equidistant  | A series where the variable is recorded at equal intervals (e.g every month)  |
+| Lag | The time- distance between points in the series, also used for delay lengths in process/series descriptions
+| Stationary |
+| Stochastic |  The future is only parly determined by the past/ exact predictions are impossible and are replaced by the idea that future values have a probability distribution
 
 
-Process Types
 
+## Process Types Terminology
+
+|:-----|:-----| 
+| Point Process | Binary Observations occur randomly at non equal interval |  
+| Binary Process | Observations can take only "0" or "1", Yes/No and so on
 
 Abbreviation and Notation
 
@@ -899,7 +1059,7 @@ https://deims.org/
 
 ## Bibliography
 
-* Textbooks and R manuals
+Heavily based on some Textbooks and R manuals
  
  + Chatfield - Chapters 1, 2 & 6
  Chatfield, Christopher. 2004. The Analysis of Time Series: An Introduction. 6th ed. Texts in Statistical Science. Boca Raton, FL: Chapman & Hall/CRC.
