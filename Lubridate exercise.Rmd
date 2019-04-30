@@ -1,0 +1,31 @@
+---
+title: "Lubridate exercise"
+author: "Tal G"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+```{r message=FALSE, warning=FALSE}
+
+library(tidyverse)
+library(lubridate)
+library(hms)
+library(scales)
+library(knitr)
+theme_set(theme_bw())
+taxi <- read_csv("taxi.csv")
+```
+
+* How many taxi trips occured every week?
+
+* How many taxi trips occured between dates 2.4.2016 - 8.4.2016?
+
+* What are the the taxi trip duration in hours?
+
+* Add 2 hours to each trip duration
+
+* Plot the trip cosat verses the taxi end_trip  
+can you show the x axis in format of hms (e.g 07:35:17) and show tick_marks every four hours?
