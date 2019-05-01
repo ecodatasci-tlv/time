@@ -6,7 +6,61 @@ output:
   prettydoc::html_pretty:
     theme: cayman
     highlight: github
+    
 ---
+
+# Date and time in R
+
+there are several types of R objects
+
+all the explanation below are taken from the
+[**Handling date-times in R Cole Beck**](http://biostat.mc.vanderbilt.edu/wiki/pub/Main/ColeBeck/datestimes.pdf) manual
+
+1. Date Class
+
+The simplest data type to use for dates is the ”Date” class. these will be internally stored as
+integers.The specific date used to index your dates is called the
+origin. Typically programming languages use a default origin of 1970-01-01, though it is really day zero, not
+day one (negative values are perfectly valid).
+
+```{r}
+unclass(Sys.Date())
+Sys.Date() - as.Date("1970-01-01")
+```
+
+
+2.  POSIXt Date-Time Class
+
+Dates are pretty simple and most of the operations that we could use for them will also apply to date-time
+variables. There are at least three good options for date-time data types: built-in POSIXt, chron package,
+lubridate package. There are two POSIXt types, POSIXct and POSIXlt. ”ct” can stand for calendar time, it stores the
+number of seconds since the origin. ”lt”, or local time, keeps the date as a list of time attributes (such as
+”hour” and ”mon”)
+
+#### current time as POSIXct:
+
+```{r}
+
+unclass(Sys.time())
+
+Sys.time()-1556568634
+
+
+```
+#### current time as POSIXit:
+
+```{r}
+unclass(as.POSIXlt(Sys.time()))
+```
+
+* usually POSIXct is easier to work with...
+with lubridate you don't need to worry about it
+
+
+**in this workshop we will give introduction to 'lubridate' package**
+
+
+# Part 1 - simple example
 
 ```{r message=FALSE, warning=FALSE}
 library(tidyverse)
@@ -29,7 +83,6 @@ timeSample <- tibble(
 knitr::kable(timeSample)
 ```
 
-# Part 1 - simple example
 
 ### Convert to Datetime object (class POSIXCT/POSIXIT)
 
@@ -60,7 +113,7 @@ timeSample %>%
 
 **Note** the only thing that matters is the order of the day/month/year. The separators can change (':' or '/' or '-' etc.) and lubridate can handle it...the same goes for 02 or 2, 2019 or 19. 
 
-** Really cool!! **
+**Really cool!!**
 
 `lubridate` can also handle date and time object in the same manner...
 * note - can translate AM/PM to the right 24 clock hour
@@ -87,9 +140,7 @@ The `force_tz` function will take the time as it and change the time zone (in th
 
 ```{r}
 tz(timeSample$datetime_1)
-
 timeSample$datetime_1 <- force_tz(timeSample$datetime_1, "Asia/Jerusalem")
-
 tz(timeSample$datetime_1)
 ```
 
@@ -104,7 +155,7 @@ timeSample$datetime_utc <- with_tz(timeSample$datetime_1, "UTC")
 kable(timeSample)
 ```
 
-** The best practice is to specify the timezone in first place **
+**The best practice is to specify the timezone in first place**
 
 ```{r}
 ymd_hms("2019-07-20 08:35:00", tz = "Asia/Jerusalem")
@@ -114,23 +165,18 @@ ymd_hms("2019-07-20 08:35:00", tz = "Asia/Jerusalem")
 ### Other nice functions in `lubridate`
 
 ```{r}
-Sys.time() # will give the current date and time
 
 days_in_month(today()) # how many days in this month?
 days_in_month(today() + 31) # how many day in the month 31 days from now?
-
 per <- period(hours = 10, minutes = 5) # define a period you can add to other date time...
-
 per # a period class object
-
 Sys.time() + per
-
 Sys.time() - per
-
 difftime(Sys.time() + per, Sys.time(), unit = "hours")
-
 difftime(Sys.time() + period(week = 3), Sys.time(), unit = "day")
-
+exmaple_interval<- interval(start = dmy("01-04-2019"),end = dmy("01-06-2019"),tz="Asia/Jerusalem") # create time interval class
+exmaple_interval
+today() %within% exmaple_interval
 quarter(Sys.time(), with_year = T) # the qurater of the year...
 ```
 
@@ -158,7 +204,6 @@ Convert to time class ("POSIXct"  or "POSIXt" )
 ```{r}
 class(taxi$trip_start)
 class(taxi$trip_end)
-
 taxi <- taxi %>% 
   mutate(trip_start = ymd_hms(trip_start, tz = "America/Chicago"),
          trip_end = ymd_hms(trip_end, tz = "America/Chicago"))
@@ -212,7 +257,6 @@ Let's assume that this is a mistake and change all the zero duration to a five m
 
 ```{r}
 five_min <- as.period(5, unit = "mins") # create five minute object
-
 taxi <- taxi %>%
   
   # if the duration is 0 add five minutes
@@ -225,7 +269,6 @@ taxi <- taxi %>%
   # fix the duration
   mutate(fix_duration = difftime(alt_end_time, trip_start, 
                                  units = "mins"))
-
 taxi %>% 
   filter(fix_duration < 100) %>% 
   ggplot(aes(fix_duration)) +
@@ -243,7 +286,6 @@ taxi <- taxi %>%
            between(hour, 12, 18) ~ "noon",
            TRUE ~ "night"
          )) 
-
 ggplot(taxi, aes(time_category, trip_miles)) +
   geom_boxplot() +
   scale_y_log10() +
@@ -310,10 +352,8 @@ How to show only some of the time series
 ```{r}
 start_time <- ymd_hms("2016-01-01 06:00:00", tz = "Asia/Jerusalem")
 end_time <- ymd_hms("2016-01-05 06:00:00", tz = "Asia/Jerusalem")
-
 # create a start and end time R object
 start_end <- c(start_time, end_time)
-
 p + scale_x_datetime(limits = start_end,
                      date_breaks = "12 hours", 
                      labels = date_format("%d-%m-%y %H:%M")) +
@@ -329,7 +369,6 @@ If you want to plot hourly patterns  there are 2 options
 ```{r}
 taxi <- taxi %>% 
   mutate(time = as.hms(trip_start)) 
-
 ggplot(taxi, aes(time, fare)) +
   geom_point(color = "blue", alpha = 0.1) +
   scale_x_time(labels = function(x) strftime(x, "%H:%M"))
@@ -342,17 +381,12 @@ Give one fake date to all the observation and customize with the `scale_x_dateti
 ```{r}
 taxi <- taxi %>% 
   mutate(fake_date = ymd_hms(paste("2000-01-01", time)))
-
 (p_2 <- ggplot(taxi, aes(fake_date, fare)) +
     geom_point(color = "blue", alpha = 0.1) + 
     xlab("Trip start (hour)") + 
     ylab("Trip cost ($)"))
-
 p_2 + 
   scale_x_datetime(date_breaks = "2 hours", 
                    labels = date_format("%H:%M")) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
-
-
-
