@@ -1,0 +1,105 @@
+---
+title: "Lubridate exercise - solution"
+author: "Tal G"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+
+
+```{r message=FALSE, warning=FALSE}
+
+library(tidyverse)
+library(lubridate)
+library(hms)
+library(scales)
+library(knitr)
+
+theme_set(theme_bw())
+
+taxi <- read_csv("taxi.csv")
+
+taxi$trip_start <- ymd_hms(taxi$trip_start,tz="America/Chicago")
+taxi$trip_end <- ymd_hms(taxi$trip_end,tz="America/Chicago")
+
+```
+
+## How many taxi trips occured every week?
+
+```{r}
+
+ taxi %>%  mutate(week = week(trip_start)) %>% 
+  ggplot(aes(week)) +
+  geom_bar()
+
+
+
+```
+
+
+## How many taxi trips occured between dates 2.4.2016 - 8.4.2016?
+
+option 1
+
+```{r}
+my_interval<-interval(dmy("2.1.2016"),dmy("8.1.2016"),tz="America/Chicago")
+
+length(which(taxi$trip_start %within% my_interval))
+
+```
+
+option 2 - if you want to keep those rows...
+
+```{r}
+within_taxi_trips<- taxi %>% filter(trip_start %within% my_interval)
+```
+
+## What are the the taxi trip duration in hours?
+
+```{r}
+taxi %>% 
+  mutate(duration = difftime(trip_end, trip_start,units = "hour")) %>% 
+  ggplot(aes(duration)) +
+  geom_histogram(bins = 25)+
+  scale_x_continuous(breaks = seq(0,2,0.25),limits = c(0,2))
+
+```
+
+## Add 2 hours to each trip duration
+
+```{r}
+two_hour <- as.period(2, unit = "hours")
+
+taxi %>% 
+  mutate(trip_end = trip_end + two_hour) %>% 
+  mutate(duration = difftime(trip_end, trip_start,units = "hour")) %>% 
+  ggplot(aes(duration)) +
+  geom_histogram(bins = 25)+
+  scale_x_continuous(breaks = seq(0,4,0.5),limits = c(0,4))
+
+```
+
+## Plot the trip cosat verses the taxi end_trip
+
+can you show the x axis in format of hms (e.g 07:35:17) and show tick_marks every four hours?
+
+```{r}
+
+ taxi <- taxi %>%
+  mutate(time = as.hms(trip_end)) %>% 
+  mutate(fake_date = ymd_hms(paste("2000-01-01", time))) 
+
+   ggplot(taxi, aes(fake_date, fare)) +
+    geom_point(color = "blue", alpha = 0.1) + 
+    xlab("Trip end (hour)") + 
+    ylab("Trip cost ($)")+
+    scale_x_datetime(date_breaks = "4 hours", 
+                   labels = date_format("%H:%M:$S"))
+
+```
+
+
+

@@ -2,66 +2,134 @@
 title: "Simple Descriptive Techniques for Time Series Analysis"
 author: "Amir R"
 output:
-  html_document:
-    df_print: paged
+  rmdformats::readthedown:
+   df_print: paged
 ---
-```{r eval=T, include=FALSE}
-library(magrittr) #for the pipes
+```{r Packages, eval=T, include=FALSE}
+library(magrittr) # for the pipes
 # install.packages("magrittr") if not installed
 ```
 
-Let's load some sample data
+# Intro
+
+What's a time series anyway ?
+
 ```{r}
-load("TSsimple.RData")
+
 ```
 
-and examine its structure
+Types of time series:
+
+Defined by the type of time axis and 
+
+
+ * The Time Variable/Axis - Continuous vs. Discrete
+  + Missing Values ?
+  + Equidistant
+  
+ * The Variable being recorded / generated
+
+
+## Why bother ?
+
+* Variables in Time almost always behave differently than in space
+
+<!-- and the areas of statistics that we usually study in the context of biology is, in many cases, not fit to handle them -->
+
+*  Very developed mathematical field with many applications in 
+
+ + Electromagnetic / Audio Signal Analysis
+ + Signal Processing
+ + Sales / Marketing 
+ + Econometrics
+ + Materials and Manufacturing Control
+
+* Much literature and expertise outside Ecology / Biology
+<!-- = opportunity -->
+
+## Terminology
+
+
+
+## Objectives of Time Series Analysis
+
+
+
+## Approaches
+
+## Goals For today
+
+* Study the most basic R tools for exploration
+ + No packages other than the pre-installed ones
+* Understand the concept of serial correlation in time
+
+<!-- and be able to construct a list of lag-clues -->
+
+* Introduce only things that can be relevant to everybody
+
+Warning: the following program does not include any
+* Statistical Theory
+* Statistical Methodology
+* Model fitting or Comparison
+* Forecasting 
+
+
+
+***
+
+Let's load some sample data and examine its structure
 
 ```{r}
-blowfly<-read.csv("blowfly.csv", header=T) #delete later
+blowfly <- read.csv("blowfly.csv", header = T) 
 str(blowfly)
 ```
 ***
 Time for a first look at Nicholson's flies 
+
 ```{r}
 plot(blowfly$total)
 summary(blowfly$total)
 ```
 
 and using a time series plotting method:
+
 ```{r}
 plot.ts(blowfly$total)
 ```
 
-#The `ts` class
+# The `ts` class
 
 `plot.ts` plots the object as if it were of the special class of R objects known simply as *ts*
 
 the `ts()` function is used to convert objects to the ts class
 
 ```{r}
-flies<-ts(blowfly$total)
+flies <- ts(blowfly$total)
 class(flies)
 typeof(flies)
 ```
+
 many base/stats functions are actually designed for the 'ts' class
-example:`acf`
+example: `acf`
+
 ```{r}
 plot(flies)
 acf(flies)
-y.filter <- filter(flies, filter = rep(1, 5))/5
+y.filter <- filter(flies, filter = rep(1, 5)) / 5
 plot(y.filter)
 
 deltat(flies)
 
-plot(window(flies,100,200,1))
-
+plot(window(flies, 100, 200, 1))
 ```
+
 but using  them on a non- *ts* object may or may not result in an error:
+<!-- actually all of these work.... -->
+
 ```{r eval=FALSE, include=FALSE}
 acf(blowfly$total)
 
-y.filter <- filter(blowfly$total, filter = rep(1, 5))/5
+y.filter <- filter(blowfly$total, filter = rep(1, 5)) / 5
 plot(y.filter)
 
 deltat(blowfly$total)
@@ -71,16 +139,17 @@ frequency(blowfly$total)
 Warning: the `ts` class is designed only for equidistant series. other packages have other classes and functions which extend capabilities
 
 ***
-#descriptive techniques and time series exploration
+# descriptive techniques and time series exploration
 
 let's return to our example
+
 ```{r echo=FALSE}
 plot(flies)
 ```
 
 This is an example of a relatively clear cyclical process, at least at the begining (points 1:200). the second part (200:361) looks less regular and with an upward trend.
 
-Exploratory Questions
+## Exploratory Questions
 
  * what are the cycle periods ?
  * is there any hidden periodical behaviour that is not immediately apparent ?
@@ -88,26 +157,45 @@ Exploratory Questions
  * can we tie this behaviour to external parameters ?
 
 Other, not so clear examples:
-```{r}
 
+```{r synthetic series, include=FALSE}
+w <- rnorm(500, 0, 1) # this is actually a perfect white noise
+rw <- cumsum(rnorm(100, 0, 1))
+rwd <- cumsum(rnorm(200, 0, 1) + 0.05) # random walk with drift
+sine.wn <- sin(1:200 / 5) + rnorm(200, mean = 20, sd = 1.5) + seq(0, 3, length.out = 200)
+Z <- rnorm(250, 0, 1)
+Y <- numeric(250)
+Y[1] <- Z[1]
+for (i in 2:250) Y[i] <- -0.5 * Y[i - 1] + Z[i]
+```
+
+```{r}
+par(mfrow = c(2, 2))
+
+plot.ts(w)
+plot.ts(rwd)
+plot.ts(sine.wn)
+plot.ts(Y)
+
+par(mfrow = c(1, 1))
 ```
 
 We can see some clearer cyclical behaviour of a section if we zoom in and explore a bit with `window()`:
 
 ```{r}
-plot(window(flies,1,100))
-plot(window(flies,1,100,deltat = 5))
-plot(window(flies,1,100,deltat = 10))
-plot(window(flies,1,100,deltat = 20))
+plot(window(flies, 1, 100))
+plot(window(flies, 1, 100, deltat = 5))
+plot(window(flies, 1, 100, deltat = 10))
+plot(window(flies, 1, 100, deltat = 20))
 ```
+
 We finally lose the cyclical behaviour at ~detat=20. let's remember this...
-
-
 
 The flies series is unusually clear, and still - its cyclical behaviour is only one possible pattern.
 
 other series may represent processes that behave in a way that is not immediately recognizable, and have many things going at once.
 example:
+
 ```{r}
 
 ```
@@ -117,44 +205,52 @@ We naturally want  tools that will describe the entire series' and parts of the 
 
 for that, we need to undestand autocorrelation and related attributes of time series
 
-##Measures of dependence 
+## Measures of serial dependence 
 
-###Background on Autocorrelation
+### Background on Autocorrelation - The lag plot.
 
 how does my data behave in relation to itself ? to illustrate the background for autocorrelation:
 
 let's look at a lag of 1 point, or 'how does this week's population relate to last week's population ?
 
 ```{r}
-plot(flies[1:350],flies[2:351])
+plot(flies[1:350], flies[2:351])
 ```
 
-Clearly, there's a pattern at lag =1, at least the smaller population sizes
+Clearly, there's a pattern at lag =1, at least in the smaller population sizes
 
 now let's look at other lags:
 
 ```{r fig.show='hold'}
-#lag=2
-plot(flies[1:350],flies[3:352])
-#lag=3
-plot(flies[1:350],flies[4:353])
+# lag=2
+plot(flies[1:350], flies[3:352])
+# lag=3
+plot(flies[1:350], flies[4:353])
 ```
 
-we start losing the pattern gradually...
+we start losing the pattern gradually, as we go to higher lags...
 
-more lags, lag = 1 to lag =8:
 
-```{r echo=FALSE, results='hide'}
-par(mfrow=c(2,4))
-sapply(1:8,function (x) plot(flies[-c(1:x)],flies[-c(361:(361-x+1))]))
+more lags, lag = 1 to lag =8, using `lag.plot()`
+
+```{r eval=FALSE, include=FALSE, results='hide'}
+par(mfrow = c(2, 4))
+sapply(1:8, function(x) plot(flies[-c(1:x)], flies[-c(361:(361 - x + 1))]))
+```
+```{r}
+lag.plot(flies, lag = 8, layout = c(2, 4), diag = T)
 ```
 
 however, at lags 9-16:
 
-```{r echo=FALSE, message=FALSE, results='hide'}
-par(mfrow=c(2,4))
-sapply(9:16,function (x) plot( flies[-c(1:x)],flies[-c(361:(361-x+1))]))
-par(mfrow=c(1,1))
+```{r eval=FALSE, message=FALSE, include=FALSE, results='hide'}
+par(mfrow = c(2, 4))
+sapply(9:16, function(x) plot(flies[-c(1:x)], flies[-c(361:(361 - x + 1))]))
+par(mfrow = c(1, 1))
+```
+
+```{r}
+lag.plot(flies, lags = 8, set.lags = 9:16, layout = c(2, 4), diag = T)
 ```
 
 **summary**
@@ -177,11 +273,11 @@ let's have a look at them
 
 
 ```{r results='hide'}
-a<-acf(flies, plot = F)
+a <- acf(flies, plot = F)
 ```
 
 ```{r }
-a$acf %>% head(10) #for the actual factors
+a$acf %>% head(10) # for the actual factors
 ```
 
 and the horizontal axis is simply the lag size.
@@ -196,7 +292,7 @@ there's no better evidence of cycles, the flies exhibit strong positive AND nega
 
 let's look at the entire series
 ```{r}
-acf(flies, lag.max = 360,col="red")
+acf(flies, lag.max = 360, col = "red")
 ```
 
 We can see
@@ -219,24 +315,25 @@ This last point is espesically important for linear and other modeling, which as
 and this illustrates why we need to explore time series intenrally before we go on to the other, external parameters.
 
 ```{r echo=FALSE, fig.show='hold'}
-par(mfrow=c(2,1))
+par(mfrow = c(2, 1))
 
-plot(flies,main=NULL)
-acf(flies, lag.max = 360, main=NULL)
+plot(flies, main = NULL)
+acf(flies, lag.max = 360, main = NULL)
 
-par(mfrow=c(1,1))
+par(mfrow = c(1, 1))
 ```
 
 The **Sample Autocovariance Coeefficients**
 
 We could also look at the correspoding covariance coefficients by change the type parameter.
 ```{r}
-acf(flies,type="covariance")$acf %>% head(10)
+acf(flies, type = "covariance")$acf %>% head(10)
 ```
 
 
 ***
-###Partial Autocorrelation
+### Partial Autocorrelation
+
 Correlograms produced using the sample *autocorrelation* coefficients do not account for the fact that for a given lag size there may be correlation between internal points, (eg. values that are 4 points apart were correlated, but so do values that are 2 points apart).
 
 We sometimes want to control for the internal correlations inside the lag, or in other words, to check what would have been the correlation coefficients, had all the internal lags' coefficients were forced to zero. 
@@ -246,63 +343,77 @@ the **Partial Autocorrelation ** is the relationship between this week's populat
 We only need to use `pacf` or `acf(type="partial")` instead of the default
 
 ```{r}
-#Autocorrelation Coefficients
-acc<-a$acf %>% head(12) %>% round(2)
-#Partial Autocorrelation Coefficients
-partial.acc<-pacf(flies, plot = F) %>% .$acf %>% head(12) %>% round(2)
+# Autocorrelation Coefficients
+acc <- a$acf %>% head(12) %>% round(2)
+# Partial Autocorrelation Coefficients
+partial.acc <- pacf(flies, plot = F) %>% .$acf %>% head(12) %>% round(2)
 
-plot(1:12,acc,xlab = "Lag",ylab="Coefficient")
-points(1:12,partial.acc,col = "green")
-lines(1:12,rep(0,12))
-legend("topright", c("ac coefficients", "Partial ac coeffients"),col = c("black","green"),pch = c(1,1))
+plot(1:12, acc, xlab = "Lag", ylab = "Coefficient")
+points(1:12, partial.acc, col = "green")
+lines(1:12, rep(0, 12))
+legend("topright", c("ac coefficients", "Partial ac coeffients"), col = c("black", "green"), pch = c(1, 1))
 
 pacf(flies)
-pacf(flies, lag.max = 360,col="red")
+pacf(flies, lag.max = 360, col = "red")
 ```
-what can we take from this ?
-clues for possible underlying processes in lags 2-4 and 12-16
 
-the PACF can be thought of as analogous to a second derivative
+what can we take from this ?
+the maximal negative and maximal positive lags are important places in the cycle.
+clues for possible underlying processes in lags 3 and 12
+
+the PACF can be thought of as analogous to a derivative - points driving change in pitch or direction. 
+
+
 ***
 
 Summary till now, using just Correlograms for the entire series
 * cycle length - about 19
-* Lags 2-4, 12-16 are suspected
+* Lags 2-4, 12-16 are suspected: we should look for biological mechanisms there, when we construct an explanatory model.
 
-###Cross Correlation
-The total number of flys is not the only one we have...
+again, this is only from the time series itself, before considering any other data.
 
-plotting the dataframe variables against eachother
+
+### Cross Correlation
+
+The total number of flies is not the only one we have...
+
+we could always plotting the dataframe variables against each other
+
 ```{r}
-plot(blowfly)
-
+plot(blowfly, lower.panel = NULL)
 ```
 
-we get a strong correlation between total, deaths, and emerging. but is this causative ?
+we get a strong correlation between total, deaths, and emerging. but there's an inherent problem in this analysis...
 
 ```{r, fig.show='hold'}
-blowfly %>% ts ->bf
+blowfly %>% ts() -> bf
 plot(bf)
 
 
-blowfly$eggs %>% ts ->eggs
-blowfly$nonemerging %>% ts ->nonemerging
-blowfly$emerging %>% ts ->emerging
+blowfly$eggs %>% ts() -> eggs
+blowfly$nonemerging %>% ts() -> nonemerging
+blowfly$emerging %>% ts() -> emerging
 
-acf(eggs)
-acf(flies,lag.max = 100)
-acf(emerging)
+# ccf(eggs,flies)
 
-
-ccf(eggs,flies)
-ccf(flies,nonemerging)
+ccf(nonemerging, flies)
+ccf(emerging, flies)
+ccf(eggs, flies)
 ```
-Reminder: Lags 2-4, 12-16 are suspected from total
-eggs
-non emerging - 
-emerging - positive at 2-4 weeks !
 
+Reminder: Lags 2-4 (negative), 12-16 (positive) are suspected from `pacf()` of the total of "flies"
 
+from `ccf()`
+
+example, eggs vs. total- 
+
+* negative at lags 2-3 
+* negative at (-17 - -16)
+* positive at 12-13
+
+it can be difficult to construct an explanation from this alone, but we have clues of lead times and delay times.
+
+This is a first step in time series stats, towards modeling.
 
 Note: positive and negative lags are non-symmetric when in comes to correlation coefficients.
 
@@ -310,29 +421,491 @@ Note: positive and negative lags are non-symmetric when in comes to correlation 
 findings:
 cycle length = still 19
 
-```{r}
-bf[,1]
-```
+larval processes *appear* to drive the cycles when they reach a maximum (density dependent competition ?)
 
 ***
-#analysing parts of a TS
+
+### Spectral Analysis
+an alternative approach to analysing fluctuations is to analyze frequencies.
+this is based on Fourier transformation which give us the correlation between the time series in question and sine/cosine waves with various frequencies
+
+#### The Spectrogram
+
+```{r}
+spectrum(flies, main = "")
+```
+
+in this analysis we look for frequency peaks. in this case:
+
+```{r}
+spec <- spectrum(flies)
+
+(spec$spec) %>% which.max() -> maxloc # where's the maximal value ?
+max.freq <- (spec$freq)[maxloc] # what's the maximal value ?
+max.freq
+plot(spec, main = "")
+abline(v = max.freq, col = "red", lwd = 2)
+
+1 / max.freq
+```
+
+suggests again cycles of ~19 years.
+the information may or may not be easier to interpret than a correlogram.
+it's best to use both when exploring.
+
+***
+
+## analysing parts of a TS + detrending
 
 now let's adapt the analysis for the two parts, separately
 
 
-```{r}
-first<-ts(flies[1:200])
-second<-ts(flies[201:361])
-
-plot(first, ylim = c(0,14000))
+```{r, fig.show='hold'}
+first <- ts(flies[1:200])
+second <- ts(flies[201:361])
+par(mfrow = c(1, 2))
+plot(first, ylim = c(0, 14000))
 plot(second)
+par(mfrow = c(1, 1))
+```
+
+what are the notable differences between the 2 parts ?
+<!-- e.g same cycle periods ? more 'condensed' ? -->
+
+***
+
+1.visually identify a breakpoint
+
+2. apply the same steps on parts of the series to find their attributes and identify discontinuities
+
+```{r acf on both parts, fig.show="hold"}
+par(mfrow = c(2, 2))
+acf(first)
+acf(second)
+pacf(first)
+pacf(second)
+par(mfrow = c(1, 1))
+```
+
+shows generally the same attributes between the 2 parts
+
+ * same shapes
+ * cycle lengths is still 19 weeks
+ * Important Lags in the *second* parts are shifted 1-2 or (-1) - (-2) lags , compared with the *first* - change points are somewhat closer to each other
+ 
+ 
+*** 
+
+however - there's a problem....
+<!-- the first and second parts appear to follow different trends -->
+***
+
+### de-trending using `lm()`
+
+let's detrend using linear regression, and have look at the results.
+
+```{r de-trending usin a LM, results='hold'}
+firstX <- 1:length(first)
+first.lm <- lm(first ~ firstX)
+first.detrended <- first - predict(first.lm)
+
+secondX <- 1:length(second)
+second.lm <- lm(second ~ secondX)
+second.detrended <- second - predict(second.lm)
+
+par(mfrow = c(2, 2))
+plot(first)
+lines(first.lm$fitted.values, col = "red")
+plot(second)
+lines(second.lm$fitted.values, col = "blue")
+
+plot.ts(first.detrended) # reminder Q: why plot.ts ?
+plot.ts(second.detrended)
+par(mfrow = c(1, 1))
+```
+```{r}
+first.lm$coefficients
+second.lm$coefficients
+```
+
+note: the pitch of of 'second' is 5 times that of first
+
+
+now, let's compare again
+
+```{r acf on both parts, detrended, fig.show="hold"}
+par(mfrow = c(2, 2))
+acf(first.detrended)
+acf(second.detrended)
+pacf(first.detrended)
+pacf(second.detrended)
+par(mfrow = c(1, 1))
+```
+
+comparing the de-trended versions:
+`acf()` - results similar, but `pacf()` are quite different
+
+conclusions:
+
+* suspected trend change
+* continuity in cycle period at the same time as a trend change, 
+* quite a difference in the underlying change points
+* also: second - curious new negative partial coefficient at lag 18
+
+***
+
+### de-trending using `diff()`
+
+first order differencing will also coerce the series to stationarity, and will do it more severely while still keeping the attributes of the signal
+
+```{r}
+par(mfrow = c(2, 1))
+plot(flies)
+flies %>% diff() %>% plot()
+par(mfrow = c(1, 1))
+```
+
+it has several uses and the advantage that parameters do not need to be estimated (e.g. from a linear model)
+
+
+```{r}
+first.diff <- diff(first)
+second.diff <- diff(second)
+
+
+par(mfrow = c(3, 2))
+plot(first)
+lines(first.lm$fitted.values, col = "red")
+plot(second)
+lines(second.lm$fitted.values, col = "blue")
+
+plot.ts(first.detrended) # reminder Q: why plot.ts ?
+plot.ts(second.detrended)
+
+plot(first.diff)
+plot(second.diff)
+
+par(mfrow = c(1, 1))
+```
+
+```{r}
+par(mfrow = c(3, 2))
+
+plot(first)
+plot(second)
+
+acf(first.detrended, main = "")
+acf(second.detrended, main = "")
+
+acf(first.diff, main = "")
+acf(second.diff, main = "")
+par(mfrow = c(1, 1))
+```
+
+Differencing is more successfull in creating
+
+***
+
+## Smoothing
+
+let's return to some noisier series
+
+```{r}
+w <- ts(w)
+rwd <- ts(rwd)
+sine.wn <- ts(sine.wn)
+Y <- ts(Y)
+
+plot(w)
+plot(rwd)
+plot(sine.wn)
+plot(Y)
+```
+
+last time we used `window()`
+
+```{r}
+par(mfrow = c(2, 2))
+
+plot(window(w, 100, 200))
+plot(window(w, 100, 150))
+plot(window(w, 100, 125))
+
+par(mfrow = c(1, 1))
+```
+
+this approach doesn't work
+
+we should probably start looking by smoothing first
+
+### smoothing via `filter()`
+
+filter allows many methods for smoothing
+
+#### filtering with a moving average
+
+this is the simplest technique
+we use the filter argument with a weights vector, giving equal weights
+
+```{r, fig.show="hold"}
+par(mfrow = c(3, 1))
+
+v <- filter(w, sides = 2, filter = rep(1, 3) / 3)
+plot(w)
+lines(v, col = "red")
+
+rwd.s <- filter(rwd, sides = 2, filter = rep(1, 3) / 3)
+plot(rwd)
+lines(rwd.s, col = "red")
+
+sine.wn.s <- filter(sine.wn, sides = 2, filter = rep(1, 3) / 3)
+plot(sine.wn)
+lines(sine.wn.s, col = "red")
+
+Y.s <- filter(Y, sides = 2, filter = rep(1, 3) / 3)
+plot(Y)
+lines(Y.s, col = "red")
+
+par(mfrow = c(1, 1))
+```
+
+
+let's try a 9 point average
+
+```{r,fig.show="hold"}
+v <- filter(w, sides = 2, filter = rep(1, 9) / 9)
+plot(w)
+lines(v, col = "red")
+
+rwd.s <- filter(rwd, sides = 2, filter = rep(1, 9) / 9)
+plot(rwd)
+lines(rwd.s, col = "red")
+
+sine.wn.s <- filter(sine.wn, sides = 2, filter = rep(1, 9) / 9)
+plot(sine.wn)
+lines(sine.wn.s, col = "red")
+
+
+Y.s <- filter(Y, sides = 2, filter = rep(1, 9) / 9)
+plot(Y)
+lines(Y.s, col = "red")
+```
+
+let's try a 15 point average
+
+```{r,fig.show="hold"}
+v <- filter(w, sides = 2, filter = rep(1, 15) / 15)
+plot(w)
+lines(v, col = "red")
+
+rwd.s <- filter(rwd, sides = 2, filter = rep(1, 15) / 15)
+plot(rwd)
+lines(rwd.s, col = "red")
+
+sine.wn.s <- filter(sine.wn, sides = 2, filter = rep(1, 15) / 15)
+plot(sine.wn)
+lines(sine.wn.s, col = "red", lwd = 3)
+
+
+Y.s <- filter(Y, sides = 2, filter = rep(1, 15) / 15)
+plot(Y)
+lines(Y.s, col = "red")
+```
+
+increase the avergaing period to recieve a smoother results and (maybe) reveal patterns in the noise
+
+
+a moving average is a *local smoother*, meaning it allows a change of series behavior throught the series.
+
+### smoothing via `ksmooth()`
+
+```{r}
+t <- 1:length(sine.wn)
+
+plot(sine.wn)
+lines(sine.wn.s, col = "red", lwd = 3)
+lines(ksmooth(t, sine.wn, "normal", bandwidth = 5), col = "blue", lwd = 2)
+
+plot(sine.wn)
+lines(sine.wn.s, col = "red", lwd = 3)
+lines(ksmooth(t, sine.wn, "normal", bandwidth = 10), col = "blue", lwd = 2)
+
+plot(sine.wn)
+lines(sine.wn.s, col = "red", lwd = 3)
+lines(ksmooth(t, sine.wn, "normal", bandwidth = 20), col = "blue", lwd = 2)
+```
+
+The wider the bandwidth, the smoother the result
+
+### smoothing via `smooth.spline()`
+
+```{r}
+t <- 1:length(sine.wn)
+
+# smoothing paraeter=0.1
+plot(sine.wn)
+lines(sine.wn.s, col = "red", lwd = 3)
+lines(smooth.spline(t, sine.wn, spar = 0.1), col = "blue", lwd = 2)
+
+# smoothing paraeter=1
+plot(sine.wn)
+lines(sine.wn.s, col = "red", lwd = 3)
+lines(smooth.spline(t, sine.wn, spar = 1), col = "blue", lwd = 2)
+
+# smoothing paraeter=0.7
+plot(sine.wn)
+lines(sine.wn.s, col = "red", lwd = 3)
+lines(smooth.spline(t, sine.wn, spar = 0.7), col = "blue", lwd = 2)
+```
+
+### smoothing via several methods
+
+```{r}
+t <- 1:length(flies)
+
+plot(flies)
+lines(ksmooth(t, flies, "normal", bandwidth = 5), col = "blue", lwd = 2)
+
+# spline smoothing smoothing paraeter=0.4
+plot(flies)
+lines(smooth.spline(t, flies, spar = 0.4), col = "blue", lwd = 2)
 ```
 
 ***
 
+
+## typical series and interpretations
+
 ```{r}
-par(mfrow=c(2,1))
-acf(first)
-acf(second)
+par(mfrow = c(3, 1))
+plot(w)
+acf(w, main = "")
+spectrum(w, main = "")
+par(mfrow = c(1, 1))
 ```
 
+No definitive pattern in lags beyond 0 or a dominant frequecy
+
+typical of a *Pure White Noise* process, which is Normal errors around a steady mean. 
+
+```{r}
+par(mfrow = c(3, 1))
+plot(ts(rw))
+acf(rw, main = "")
+spectrum(rw, main = "")
+par(mfrow = c(1, 1))
+```
+
+No definitive pattern in lags, but high correlation for all lags
+
+typical of a *Random Walk* process, where values are correlated to (mostly) only the latest value (the values in the previous step), plus a small *white noise* 
+
+**Super Important **
+
+Is there a real trend here ? the time plot and our brain say there is. but the underlying process is probably not a *real* trend or combination of trends, but 'drift'.
+
+the next value is more likely to be a minor deviation from the last value than a result of a another external driver ! 
+random walks are notorious in deceiving our brains.
+actually, the long term mean of the formula used to create this series,
+`rw<-cumsum(rnorm(100,0,1))`
+**is 0 !**
+
+repeat:
+
+```{r}
+rw <- cumsum(rnorm(100, 0, 1))
+par(mfrow = c(3, 1))
+plot(ts(rw))
+acf(rw, main = "")
+spectrum(rw, main = "")
+par(mfrow = c(1, 1))
+```
+
+The same ACF evnthough the timeplot is completely different
+
+```{r}
+par(mfrow = c(3, 1))
+plot(Y)
+acf(Y)
+pacf(Y, main = "")
+par(mfrow = c(1, 1))
+```
+
+repeated negative followed by positive:
+return to equilibrium following random departures from it.
+
+This is called an **Autoregressive Process** of order 1 (the order can be determined from the `pacf()`), or 'AR(1)' 
+in this case a *negative* AR(1) with rapid respone
+
+ecological models of equilibrium population dynamics are typically Autoregressive.
+
+# Conclusion & Remarks
+
+
+## Warnings
+
+ * Most of the methodology of time series covers only discrete time and continuous (or pseudo) variable
+ 
+# Terminology & Abbreviations 
+
+
+R functions
+
+|:-----|:-----| 
+| ts  | construct a time series object |
+| window |
+| acf , pacf , ccf | study serial correlation
+
+
+|:-----|:-----| 
+| Equidistant  | A series where the variable is recorded at equal intervals (e.g every month)  |
+
+
+Process Types
+
+
+Abbreviation and Notation
+
+|:-----|:-----| 
+| ACF or ac.f  | Autocorrelation Function |
+| pACF | Partial (corr. coefficient) ACF |
+| AR   | Autoregressive  |
+| MA   | Moving Average  |
+#Source Material and useful links
+
+## Useful Links
+
+CRAN Task View: Time Series Analysis
+https://cran.r-project.org/web/views/TimeSeries.html
+
+Time Series Modeling basics, explained simply albeit with some theorey mistakes
+https://www.analyticsvidhya.com/blog/2015/12/complete-tutorial-time-series-modeling/
+
+Basic Data Analysis for Time Series with R
+https://library.books24x7.com/toc.aspx?bookid=63461
+(requires a library login + a books 24/7 account)
+
+Looking for real ecological time series ?
+
+* BIOTIME - a Global database of biodiversity time series
+http://biotime.st-andrews.ac.uk/
+
+* NEON - a repository for LTERs
+
+https://data.neonscience.org/browse-data?showAllDates=true&showAllSites=true&showTheme=org
+
+* DEIMS - another repository for LTERs
+https://deims.org/
+
+## Bibliography
+
+* Textbooks and R manuals
+ 
+ + Chatfield - Chapters 1, 2 & 6
+ Chatfield, Christopher. 2004. The Analysis of Time Series: An Introduction. 6th ed. Texts in Statistical Science. Boca Raton, FL: Chapman & Hall/CRC.
+ + Shumway & Stoffer - Chapters 1, 2 & 4
+ Shumway, Robert H., and David S. Stoffer. 2006. Time Series Analysis and Its Applications: With R Examples. 2nd [updated] ed. Springer Texts in Statistics. New York: Springer.
+ + The R book by Crawley - Chapter 24
+Crawley, Michael J. 2013. The R Book. Second edition. Chichester, West Sussex, United Kingdom: Wiley.
+
+There are many others...
