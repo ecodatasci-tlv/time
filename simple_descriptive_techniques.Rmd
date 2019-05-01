@@ -52,6 +52,24 @@ Data fit for classic time series analysis in base R
 
 ---
 
+## Goals For today
+
+1. Learn some basic R tools for exploring series
+
+   <!-- * No packages other than the pre-installed ones -->
+
+   <!-- * Introduce only things that can be relevant to everybody -->
+
+2. Understand and quantify Serial correlation in time
+
+3. Preparation for further analysis
+
+<!-- construct a set of clues in terms of which lags are important in our system's dynamics. -->
+
+<!-- Without going over methodology, assumptions checking, theory and math notation & formulae -->
+
+---
+
 ## Why bother ?
 
 * Variables in Time almost always behave differently than in space
@@ -93,24 +111,6 @@ Data fit for classic time series analysis in base R
 <!--  * Inference by Analysis in the Frequency Domain - based on the Spectrogram -->
 <!--  * Linear systems - one system is considered the input, another the output -->
 <!--  * Modelling and Model Comparison  -->
-
----
-
-## Goals For today
-
-1. Learn some basic R tools for exploring series
-
-   <!-- * No packages other than the pre-installed ones -->
-
-   <!-- * Introduce only things that can be relevant to everybody -->
-
-2. Understand and quantify Serial correlation in time
-
-3. Preparation for further analysis
-
-<!-- construct a set of clues in terms of which lags are important in our system's dynamics. -->
-
-<!-- Without going over methodology, assumptions checking, theory and math notation & formulae -->
 
 ---
 
@@ -208,6 +208,27 @@ plot(flies)
 
 ---
 
+explore different persepctives according to frequency with `aggregate` and `boxplot`
+```{r}
+par(mfrow=c(2,2))
+plot(flies)
+ag.flies<-aggregate(flies) ; plot(ag.flies)
+cyc.flies<- cycle(flies) ; boxplot(flies ~ cyc.flies)
+par(mfrow=c(1,1))
+```
+`cycle` was used to pull up the monthly interval as a categorical variable
+
+---
+
+Draw 2 series that have the same time axis together,
+with `cbind` 
+```{r}
+eggs2<-ts(blowfly$eggs, start=c(1954,1), frequency = 12)
+plot(cbind(flies , eggs2 ))
+```
+
+---
+
 set a frequency of every 2-3 days
 ```{r}
 flies<-ts(blowfly$total, start=(c(1954,1)) , freq = 150)
@@ -258,7 +279,7 @@ plot(flies)
  * is there any hidden periodical behaviour that is not immediately apparent ?
  * Do these 2 parts behave similarly or is there a fundamental change ? which attributes  of the first part are conserved in the second part
 
-```{r}
+```{r echo=FALSE}
 plot(flies)
 ```
 
